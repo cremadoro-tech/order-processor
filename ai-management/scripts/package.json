@@ -1,0 +1,25 @@
+{
+  "name": "ec-scraper",
+  "version": "1.0.0",
+  "description": "EC各サイトの売上データ取得スクリプト",
+  "type": "module",
+  "scripts": {
+    "ec": "node ec/index.js",
+    "ec:amazon": "node ec/scrapers/amazon.js",
+    "ec:rakuten": "node ec/scrapers/rakuten.js",
+    "ec:yahoo": "node ec/scrapers/yahoo.js",
+    "ec:shopify": "node ec/scrapers/shopify.js",
+    "ec:giftmall": "node ec/scrapers/giftmall.js",
+    "ec:aupay": "node ec/scrapers/aupay.js",
+    "ec:qoo10": "node ec/scrapers/qoo10.js",
+    "nint": "node nint/index.js",
+    "login": "node ec/login-helper.js",
+    "rakuten:genre": "node ec/utils/rakuten-genre.js"
+  },
+  "dependencies": {
+    "playwright": "^1.50.0",
+    "dotenv": "^16.4.0",
+    "googleapis": "^144.0.0",
+    "dayjs": "^1.11.0"
+  }
+}

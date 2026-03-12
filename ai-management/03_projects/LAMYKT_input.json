@@ -1,0 +1,64 @@
+{
+  "item_code": "LAMYKT",
+  "item_name": "LAMY safari KURUTOGA inside（ラミー サファリ クルトガ インサイド）",
+  "monthly_target": "100万円/月（販売数目標：各色20本×4色=80本）",
+  "competitor_url": "新発売のため現在なし（Nint調査後に更新予定）",
+  "nint_monthly_avg": "未定",
+  "nint_peak_month": "未定",
+  "adoption_reason": "三菱鉛筆×LAMYコラボ第2弾（2026年3月13日発売）。クルトガ累計1億本・17年連続シャープ売上No.1のブランド力 × LAMYの高級デザインを融合。第1弾（LAMY safari JETSTREAM inside、2025年1月）の好評実績を受けたシリーズ展開。発売直後の先行出品により競合優位性を確保。",
+  "persona": {
+    "buyer": "文具好きの学生・ビジネスユーザー・LAMY/クルトガファン。入学・新生活準備層。",
+    "recipient": "入学祝い・新生活プレゼント受取者（中高生〜社会人）",
+    "target_event": "入学準備 / 新社会人・新学期ギフト / 文具コレクター向け限定品",
+    "reason_to_choose": "クルトガエンジン（KSモデル同等）でトガり続ける書き心地 × LAMYサファリの人間工学グリップ・メタルクリップデザイン。世界的高級ブランドのコラボ限定品。4色展開でコレクション需要あり。",
+    "name_engraving_example": "初期は名入れなし。将来的に名入れオプション展開を検討。"
+  },
+  "market_analysis": {
+    "market_size_trend": "クルトガシリーズ累計1億本突破（2009〜2025年）・17年連続シャープ売上No.1。三菱鉛筆が2024年にLAMY買収後、コラボ第1弾（JETSTREAM inside、2025年1月）が好評でシリーズ展開に発展。高価格帯シャープ（3,000円超）市場での需要拡大トレンド。",
+    "main_competitors": "未定（新発売のためNint調査後に更新予定）",
+    "differentiation": "LAMY×クルトガの唯一のコラボ品。クルトガ機能専用に新規設計した軸（通常LAMYサファリとは別設計）。ペン先ブレ抑制機構搭載（KSモデル同等）。三角形断面グリップで長時間筆記でも疲れにくい。文字数制限なし・名入れ不要の即購入商品。",
+    "product_strengths": "クルトガエンジン搭載で書くたびに芯が回転・常にトガった状態を維持。芯粉の発生を抑制。人間工学設計の三角形グリップ。象徴的な金属クリップで耐久性高。4色（ブラック・ビスタ・ブルー・イエロー）展開。税込4,180円のプレミアム価格帯。"
+  },
+  "order_info": [
+    {
+      "ne_code": "未定",
+      "jan_code": "未定",
+      "maker_model": "LAMYLK-19BK",
+      "item_name": "LAMY safari KURUTOGA inside ブラック 0.5mm",
+      "lot": "未定",
+      "initial_order_qty": 20,
+      "sample_qty": "無し",
+      "wholesale_price": "未定"
+    },
+    {
+      "ne_code": "未定",
+      "jan_code": "未定",
+      "maker_model": "LAMYLK-12VI",
+      "item_name": "LAMY safari KURUTOGA inside ビスタ（透明） 0.5mm",
+      "lot": "未定",
+      "initial_order_qty": 20,
+      "sample_qty": "無し",
+      "wholesale_price": "未定"
+    },
+    {
+      "ne_code": "未定",
+      "jan_code": "未定",
+      "maker_model": "LAMYLK-14BL",
+      "item_name": "LAMY safari KURUTOGA inside ブルー 0.5mm",
+      "lot": "未定",
+      "initial_order_qty": 20,
+      "sample_qty": "無し",
+      "wholesale_price": "未定"
+    },
+    {
+      "ne_code": "未定",
+      "jan_code": "未定",
+      "maker_model": "LAMYLK-18YE",
+      "item_name": "LAMY safari KURUTOGA inside イエロー 0.5mm",
+      "lot": "未定",
+      "initial_order_qty": 20,
+      "sample_qty": "無し",
+      "wholesale_price": "未定"
+    }
+  ]
+}

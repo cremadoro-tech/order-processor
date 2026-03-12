@@ -1,0 +1,8 @@
+# Google Docs/Drive API
+google-auth>=2.25
+google-auth-oauthlib>=1.1
+google-auth-httplib2>=0.2
+google-api-python-client>=2.100
+
+# 環境変数管理
+python-dotenv>=1.0

@@ -1,0 +1,33 @@
+# 機密情報
+.env
+*.key
+credentials/
+*.pem
+*.p12
+*.pfx
+*.json.bak
+service-account*.json
+
+# システムファイル
+.DS_Store
+Thumbs.db
+
+# 一時ファイル
+*.tmp
+*.log
+__pycache__/
+node_modules/
+
+# スクリプト関連
+scripts/.cookies/
+scripts/node_modules/
+scripts/package-lock.json
+
+# Meeting Notes スキル
+.agents/skills/meeting-notes/data/
+.agents/skills/meeting-notes/venv/
+.agents/skills/meeting-notes/logs/
+.google_token.json
+
+# アーカイブ（自動退避先）
+archive/

@@ -1,0 +1,72 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/emizukami/My WorkSpace/ai-management/$HOME/Library/Application Support/Google/Chrome/Default/**)",
+      "Bash(curl -s \"https://web.plaud.ai/\")",
+      "Bash(curl -s \"https://web-static.plaud.ai/web3/js/index.C0rA76zU.js\")",
+      "Bash(tr ';' '\\\\n')",
+      "Bash(grep -oE '[\"\"`]/[a-z_]+\\(/[a-z_{}]+\\)*[\"\"`]')",
+      "Bash(grep -oE '[\"\"`][^\"\"`]*trans[^\"\"`]*[\"\"`]' /tmp/plaud-js.txt)",
+      "Bash(node post-to-buffer.mjs --dry-run)",
+      "Bash(python3:*)",
+      "Bash(curl -sv \"https://api.bufferapp.com/1/user.json?access_token=test_invalid_token\")",
+      "WebFetch(domain:developers.buffer.com)",
+      "Bash(node post-to-buffer.mjs --row 3)",
+      "Bash(node post-to-buffer.mjs --row 2)",
+      "Bash(node -e \":*)",
+      "Bash(node check-photo-urls.mjs)",
+      "Bash(curl -sI -L \"https://drive.google.com/uc?export=download&id=1UjQD7I4b9Fs8bRjaEwNOyzt1zGouWxfa\")",
+      "Bash(pip3 show openai-whisper)",
+      "Bash(node post-to-buffer.mjs --row 5 --dry-run)",
+      "Bash(pip3 show mlx-whisper)",
+      "Bash(node post-to-buffer.mjs --row 5)",
+      "Bash(brew --version)",
+      "Bash(# Check for alternative ways to get ffmpeg which port ; which conda ; pip3 list)",
+      "Bash(pip3 install static-ffmpeg)",
+      "Bash(pip3 install openai-whisper)",
+      "Bash(node _check-template.mjs)",
+      "Bash(node _update-threads-template.mjs)",
+      "Bash(pip3 install python-dotenv google-auth google-auth-oauthlib google-auth-httplib2 google-api-python-client)"
+    ]
+  },
+  "mcpServers": {
+    "slack": {
+      "command": "sh",
+      "args": [
+        "-c",
+        "export $(grep -v '^#' /Users/emizukami/My\\ WorkSpace/ai-management/.env | xargs) && npx -y @modelcontextprotocol/server-slack"
+      ]
+    },
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@latest"
+      ],
+      "env": {
+        "PLAYWRIGHT_HEADLESS": "true"
+      }
+    },
+    "github": {
+      "command": "sh",
+      "args": [
+        "-c",
+        "export $(grep -v '^#' /Users/emizukami/My\\ WorkSpace/ai-management/.env | xargs) && npx -y @modelcontextprotocol/server-github"
+      ]
+    },
+    "google-calendar": {
+      "command": "sh",
+      "args": [
+        "-c",
+        "export $(grep -v '^#' /Users/emizukami/My\\ WorkSpace/ai-management/.env | xargs) && npx -y @cocal/google-calendar-mcp"
+      ]
+    },
+    "google-sheets": {
+      "command": "sh",
+      "args": [
+        "-c",
+        "export $(grep -v '^#' /Users/emizukami/My\\ WorkSpace/ai-management/.env | xargs) && npx -y mcp-google-sheets"
+      ]
+    }
+  }
+}
