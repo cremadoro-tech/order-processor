@@ -18,6 +18,7 @@ from processor.caution_extractor import extract_cautions
 from processor.attribute_parser import parse_attributes
 from processor.name_extractor import extract_names
 from processor.excel_generator import generate_workbook
+from processor.jointy_checker import check_jointy
 from processor.quantity_checker import check_quantity_advanced
 from processor.exporter import to_csv_bytes, to_zip_bytes, generate_filename
 from config.product_lookup import get_all_db_stats
@@ -145,6 +146,7 @@ def process_files(uploaded_files) -> pd.DataFrame:
     result = extract_cautions(result)
     result = parse_attributes(result)
     result = extract_names(result)
+    result = check_jointy(result)
 
     step += 1
     progress.progress(1.0, text="処理完了")
