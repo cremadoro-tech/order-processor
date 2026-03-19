@@ -36,7 +36,7 @@ from config.categories import (
     remove_keyword,
     move_keyword,
 )
-from config.settings_io import load_json, save_json
+from config.settings_io import load_json, save_json, is_writable
 
 st.set_page_config(
     page_title="受注処理システム",
@@ -48,6 +48,10 @@ st.set_page_config(
 def main():
     st.title("📦 受注処理システム")
     st.caption("CSVアップロード → クレンジング → カテゴリ別振り分け → ダウンロード")
+
+    # 読み取り専用警告
+    if not is_writable():
+        st.sidebar.warning("読み取り専用モード（設定変更はGitHub経由）")
 
     # サイドバー: ページ切り替え
     page = st.sidebar.radio(
@@ -921,5 +925,25 @@ def _platform_label(platform: str) -> str:
     return labels.get(platform, platform)
 
 
+def check_password() -> bool:
+    """パスワード認証。st.secretsにpasswordが設定されている場合のみ有効。"""
+    try:
+        correct_pw = st.secrets["password"]
+    except (KeyError, FileNotFoundError):
+        return True  # secrets未設定ならスキップ（ローカル開発時）
+
+    if "authenticated" in st.session_state and st.session_state["authenticated"]:
+        return True
+
+    pw = st.text_input("パスワードを入力", type="password")
+    if pw == correct_pw:
+        st.session_state["authenticated"] = True
+        st.rerun()
+    elif pw:
+        st.error("パスワードが違います")
+    return False
+
+
 if __name__ == "__main__":
-    main()
+    if check_password():
+        main()
