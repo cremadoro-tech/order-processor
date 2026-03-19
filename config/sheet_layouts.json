@@ -1,0 +1,128 @@
+{
+  "_comment": "カテゴリ→Excel出力シートのカラムレイアウト定義。columns配列の各要素はExcelヘッダー名→元データ列名のマッピング。",
+  "layouts": {
+    "ジョインティ": {
+      "sheet_prefix": "ジョインティ",
+      "columns": [
+        {"header": "番号", "source": "_row_number"},
+        {"header": "商品名", "source": "商品名", "extract": "size_mm"},
+        {"header": "カラー", "source": "項目・選択肢", "extract": "body_color"},
+        {"header": "書体", "source": "書体"},
+        {"header": "イラスト", "source": "文字の向き"},
+        {"header": "名前", "source": "作成名"},
+        {"header": "バーコード", "source": "GoQ管理番号"},
+        {"header": "個数", "source": "個数"},
+        {"header": "備考", "source": "注意事項"},
+        {"header": "単品", "source": "単品複数"}
+      ]
+    },
+    "オスカ": {
+      "sheet_prefix": "オスカ",
+      "columns": [
+        {"header": "番号", "source": "_row_number"},
+        {"header": "商品名", "source": "商品名", "extract": "size_mm"},
+        {"header": "カラー", "source": "項目・選択肢", "extract": "body_color"},
+        {"header": "書体", "source": "書体"},
+        {"header": "イラスト", "source": "文字の向き"},
+        {"header": "名前", "source": "作成名"},
+        {"header": "個数", "source": "個数"},
+        {"header": "備考", "source": "注意事項"},
+        {"header": "バーコード", "source": "GoQ管理番号"},
+        {"header": "単品", "source": "単品複数"}
+      ]
+    },
+    "おむつ": {
+      "sheet_prefix": "おむつ",
+      "columns": [
+        {"header": "番号", "source": "_row_number"},
+        {"header": "サイズ・本体", "source": "商品名", "extract": "product_short"},
+        {"header": "カラー", "source": "項目・選択肢", "extract": "body_color"},
+        {"header": "書体", "source": "書体"},
+        {"header": "イラスト", "source": "項目・選択肢", "extract": "illustration"},
+        {"header": "姓", "source": "作成名", "extract": "sei"},
+        {"header": "名", "source": "作成名", "extract": "mei"},
+        {"header": "名前", "source": "作成名"},
+        {"header": "個数", "source": "個数"},
+        {"header": "備考", "source": "注意事項"},
+        {"header": "バーコード", "source": "GoQ管理番号"},
+        {"header": "単品", "source": "単品複数"}
+      ]
+    },
+    "おなまえスタンプ": {
+      "sheet_prefix": "おなまえスタンプ",
+      "columns": [
+        {"header": "番号", "source": "_row_number"},
+        {"header": "商品名", "source": "商品名", "extract": "product_short"},
+        {"header": "カラー", "source": "項目・選択肢", "extract": "body_color"},
+        {"header": "書体", "source": "書体"},
+        {"header": "イラスト", "source": "項目・選択肢", "extract": "illustration"},
+        {"header": "姓", "source": "作成名", "extract": "sei"},
+        {"header": "名", "source": "作成名", "extract": "mei"},
+        {"header": "名前", "source": "作成名"},
+        {"header": "個数", "source": "個数"},
+        {"header": "備考", "source": "注意事項"},
+        {"header": "バーコード", "source": "GoQ管理番号"},
+        {"header": "単品", "source": "単品複数"}
+      ]
+    },
+    "ゴム": {
+      "sheet_prefix": "ゴム",
+      "columns": [
+        {"header": "番号", "source": "_row_number"},
+        {"header": "商品名", "source": "商品名", "extract": "product_short"},
+        {"header": "書体", "source": "書体"},
+        {"header": "向き", "source": "文字の向き"},
+        {"header": "内容", "source": "備考"},
+        {"header": "個数", "source": "個数"},
+        {"header": "備考", "source": "注意事項"},
+        {"header": "バーコード", "source": "GoQ管理番号"},
+        {"header": "単品", "source": "単品複数"}
+      ]
+    },
+    "のし": {
+      "sheet_prefix": "のし",
+      "columns": [
+        {"header": "番号", "source": "_row_number"},
+        {"header": "サイズ・本体", "source": "商品名", "extract": "product_short"},
+        {"header": "イラスト", "source": "項目・選択肢", "extract": "illustration"},
+        {"header": "書体", "source": "書体"},
+        {"header": "墨色", "source": "項目・選択肢", "extract": "ink_color"},
+        {"header": "名前", "source": "作成名"},
+        {"header": "名前2", "source": "備考"},
+        {"header": "個数", "source": "個数"},
+        {"header": "備考", "source": "注意事項"},
+        {"header": "バーコード", "source": "GoQ管理番号"},
+        {"header": "単品", "source": "単品複数"}
+      ]
+    },
+    "おなまえシール": {
+      "sheet_prefix": "おなまえシール",
+      "columns": [
+        {"header": "番号", "source": "_row_number"},
+        {"header": "商品名", "source": "商品名", "extract": "product_short"},
+        {"header": "名前", "source": "作成名"},
+        {"header": "個数", "source": "個数"},
+        {"header": "備考", "source": "注意事項"},
+        {"header": "バーコード", "source": "GoQ管理番号"},
+        {"header": "単品", "source": "単品複数"}
+      ]
+    },
+    "_default": {
+      "sheet_prefix": "",
+      "columns": [
+        {"header": "番号", "source": "_row_number"},
+        {"header": "商品名", "source": "商品名", "extract": "product_short"},
+        {"header": "書体", "source": "書体"},
+        {"header": "内容", "source": "備考"},
+        {"header": "名前", "source": "作成名"},
+        {"header": "個数", "source": "個数"},
+        {"header": "備考", "source": "注意事項"},
+        {"header": "バーコード", "source": "GoQ管理番号"},
+        {"header": "単品", "source": "単品複数"}
+      ]
+    }
+  },
+  "max_rows_per_sheet": 100,
+  "barcode_prefix": "*",
+  "barcode_suffix": "*"
+}

@@ -1,0 +1,20 @@
+{
+  "keywords": [
+    {"keyword": "ジェットストリーム", "category": "ジェットストリーム"},
+    {"keyword": "クルトガ", "category": "クルトガ"},
+    {"keyword": "ペンペン", "category": "ペンペン"},
+    {"keyword": "えんぴつ", "category": "ペンペン"},
+    {"keyword": "ゴム", "category": "ゴム"},
+    {"keyword": "ジョインティ", "category": "ジョインティ"},
+    {"keyword": "ジョンティ", "category": "ジョインティ"},
+    {"keyword": "おなまえスタンプ", "category": "おなまえスタンプ"},
+    {"keyword": "おなまえシール", "category": "おなまえシール"},
+    {"keyword": "おむつ", "category": "おむつ"},
+    {"keyword": "タニエバー", "category": "タニエバー"},
+    {"keyword": "ツイン", "category": "ツイン"},
+    {"keyword": "のし", "category": "のし"},
+    {"keyword": "オスカ", "category": "オスカ"},
+    {"keyword": "外注", "category": "外注"}
+  ],
+  "default_category": "その他"
+}

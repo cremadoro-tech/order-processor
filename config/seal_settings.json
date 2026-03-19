@@ -1,0 +1,10 @@
+{
+  "inei_keywords_options": ["印影確認", "印影イメージ", "印影画像"],
+  "inei_keywords_remarks": ["印影確認", "印影画像", "印影イメージ", "見本"],
+  "inei_keywords_design_remarks": ["デザイン確認", "デザイン見本"],
+  "kyuji_inei_patterns": [
+    {"char": "淵", "style": "行書"},
+    {"char": "榊", "style": "行書"},
+    {"char": "榊", "style": "古印"}
+  ]
+}

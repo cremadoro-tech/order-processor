@@ -1,0 +1,57 @@
+{
+  "material_keywords": [
+    {"keyword": "スワロ付き花はんこ", "value": "スワロ付き花はんこ"},
+    {"keyword": "雲入りクリア", "value": "雲入りクリア"},
+    {"keyword": "ファンタスティック", "value": "ファンタスティック"},
+    {"keyword": "クリスタル", "value": "クリスタル"},
+    {"keyword": "チタン", "value": "チタン"},
+    {"keyword": "オランダ水牛", "value": "オランダ水牛"},
+    {"keyword": "花はんこ", "value": "花はんこ"},
+    {"keyword": "黒水牛", "value": "黒水牛"},
+    {"keyword": "上柘", "value": "上柘"}
+  ],
+  "material_suffix_keywords": [
+    {"keyword": "薄桜", "value": "薄桜"},
+    {"keyword": "桜", "value": "桜"},
+    {"keyword": "青あじさい", "value": "青あじさい"},
+    {"keyword": "紫あじさい", "value": "紫あじさい"}
+  ],
+  "material_product_suffix": [
+    {"keyword": "ゴールド", "value": "ゴールド"},
+    {"keyword": "マーブル", "value": "マーブル"},
+    {"keyword": "角印", "value": "角印"},
+    {"keyword": "スワロクリスタル", "value": "スワロクリスタル"},
+    {"keyword": "ステンレス球", "value": "ステンレス球"}
+  ],
+  "size_patterns": ["10.5", "12.0", "13.5", "15.0", "16.5", "18.0", "21.0", "24.0"],
+  "font_keywords": [
+    {"keyword": "楷書体", "value": "楷書体"},
+    {"keyword": "古印体", "value": "古印体"},
+    {"keyword": "行書体", "value": "行書体"},
+    {"keyword": "隷書体", "value": "隷書体"},
+    {"keyword": "てん書体", "value": "てん書体"},
+    {"keyword": "篆書体", "value": "てん書体"},
+    {"keyword": "印相体", "value": "印相体"}
+  ],
+  "font_conversion": {
+    "楷書体": "泰楷書太",
+    "古印体": "富古印細",
+    "行書体": "泰行書太",
+    "隷書体": "訓隷書",
+    "てん書体": "印篆",
+    "篆書体": "印篆",
+    "印相体": "印相"
+  },
+  "direction_keywords": [
+    {"keyword": "フルネーム", "value": "フルネーム"},
+    {"keyword": "ヨコ", "value": "ヨコ"},
+    {"keyword": "横", "value": "ヨコ"},
+    {"keyword": "タテ", "value": "タテ"},
+    {"keyword": "縦", "value": "タテ"}
+  ],
+  "direction_conversion": {
+    "タテ": "姓（タテ彫）",
+    "ヨコ": "名（ヨコ彫）右から左",
+    "フルネーム": "フルネーム"
+  }
+}
