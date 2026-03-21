@@ -308,10 +308,11 @@ def _write_sheet(
 def _amazon_split_key(row):
     """Amazon用のシート分割キーを決定。
 
-    マクロ②のI列と同じ分類（ひとことメモベース）:
-    - 単品 = メモに「複数」なし → AmazonJP配送
-    - 単品＋ = メモに「複数」+「単品」両方あり → フロンティア+配送
-    - 複数 = メモに「複数」あり＋「単品」なし → フロンティア配送
+    マクロ②のI列と同じ分類:
+    1. ひとことメモに「複数」+「単品」→ 単品＋（フロンティア+）
+    2. ひとことメモに「複数」→ 複数（フロンティア）
+    3. 単品複数列が「複数」or「単品+」→ 複数 or 単品＋（同一注文に他商品）
+    4. それ以外 → 単品（AmazonJP）
     """
     memo = str(row.get("ひとことメモ", ""))
     has_fukusu = "複数" in memo
@@ -321,6 +322,14 @@ def _amazon_split_key(row):
         return "単品＋"
     elif has_fukusu:
         return "複数"
+
+    # ひとことメモに「複数」がなくても、単品複数列で判定
+    qty_type = str(row.get("単品複数", ""))
+    if qty_type == "複数":
+        return "複数"
+    if qty_type == "単品+":
+        return "単品＋"
+
     return "単品"
 
 
