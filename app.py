@@ -442,10 +442,118 @@ def render_processing_page():
         if df is not None:
             st.session_state["result_df"] = df
 
+            # 履歴に保存（直近5件）
+            _save_to_history(df, uploaded_files)
+
     # 結果表示
     if "result_df" in st.session_state:
         df = st.session_state["result_df"]
         render_results(df)
+
+    # 処理履歴
+    _render_history()
+
+
+MAX_HISTORY = 5
+
+
+def _save_to_history(df, uploaded_files):
+    """処理結果を履歴に保存（直近5件）"""
+    from datetime import datetime
+
+    history = st.session_state.get("process_history", [])
+
+    # ファイル名リスト
+    file_names = [f.name for f in uploaded_files]
+
+    # カテゴリ別件数サマリー
+    cat_summary = {}
+    if "カテゴリ" in df.columns:
+        cat_summary = df["カテゴリ"].value_counts().to_dict()
+
+    # CSV/ZIP/Excelのバイト列を生成
+    categories = split_by_category(df)
+    csv_bytes = to_csv_bytes(df)
+    zip_bytes = to_zip_bytes(categories)
+
+    entry = {
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "file_names": file_names,
+        "total_rows": len(df),
+        "category_summary": cat_summary,
+        "csv_bytes": csv_bytes,
+        "zip_bytes": zip_bytes,
+        "excel_bytes": None,  # 重いので要求時に生成
+        "df": df,
+    }
+
+    # 先頭に追加、5件超えたら古いのを削除
+    history.insert(0, entry)
+    if len(history) > MAX_HISTORY:
+        history = history[:MAX_HISTORY]
+
+    st.session_state["process_history"] = history
+
+
+def _render_history():
+    """処理履歴を表示"""
+    history = st.session_state.get("process_history", [])
+    if not history:
+        return
+
+    st.divider()
+    st.header("処理履歴（直近5件）")
+
+    for i, entry in enumerate(history):
+        with st.expander(
+            f"{'[最新] ' if i == 0 else ''}{entry['timestamp']} — {', '.join(entry['file_names'])} ({entry['total_rows']:,}件)",
+            expanded=(i == 0),
+        ):
+            # カテゴリ別件数
+            cat_summary = entry.get("category_summary", {})
+            if cat_summary:
+                top5 = sorted(cat_summary.items(), key=lambda x: -x[1])[:5]
+                summary_text = " / ".join(f"{cat}: {cnt}件" for cat, cnt in top5)
+                remaining = len(cat_summary) - 5
+                if remaining > 0:
+                    summary_text += f" / 他{remaining}カテゴリ"
+                st.caption(summary_text)
+
+            # ダウンロードボタン
+            dl_cols = st.columns(3)
+            with dl_cols[0]:
+                st.download_button(
+                    label="📥 全件CSV",
+                    data=entry["csv_bytes"],
+                    file_name=f"全件_{entry['timestamp'].replace(':', '')}.csv",
+                    mime="text/csv",
+                    key=f"hist_csv_{i}",
+                    use_container_width=True,
+                )
+            with dl_cols[1]:
+                st.download_button(
+                    label="📥 カテゴリ別ZIP",
+                    data=entry["zip_bytes"],
+                    file_name=f"カテゴリ別_{entry['timestamp'].replace(':', '')}.zip",
+                    mime="application/zip",
+                    key=f"hist_zip_{i}",
+                    use_container_width=True,
+                )
+            with dl_cols[2]:
+                if st.button("📊 Excel生成", key=f"hist_excel_btn_{i}", use_container_width=True):
+                    with st.spinner("Excel生成中..."):
+                        entry["excel_bytes"] = generate_workbook(entry["df"])
+                    st.rerun()
+
+                if entry.get("excel_bytes"):
+                    st.download_button(
+                        label="📥 作業指示書Excel",
+                        data=entry["excel_bytes"],
+                        file_name=f"作業指示書_{entry['timestamp'].replace(':', '')}.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        key=f"hist_excel_{i}",
+                        use_container_width=True,
+                    )
 
 
 def process_files(uploaded_files) -> pd.DataFrame:
