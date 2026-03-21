@@ -22,6 +22,7 @@ def parse_attributes(df: pd.DataFrame) -> pd.DataFrame:
     df["書体"] = ""
     df["書体(フォント名)"] = ""
     df["文字の向き"] = ""
+    df["文字の向き(印刷用)"] = ""
 
     settings = _load_settings()
 
@@ -42,7 +43,10 @@ def parse_attributes(df: pd.DataFrame) -> pd.DataFrame:
         font_conv = settings.get("font_conversion", {})
         df.at[idx, "書体"] = font
         df.at[idx, "書体(フォント名)"] = font_conv.get(font, font)
-        df.at[idx, "文字の向き"] = _detect_direction(options, settings)
+        direction = _detect_direction(options, settings)
+        dir_conv = settings.get("direction_conversion", {})
+        df.at[idx, "文字の向き"] = direction
+        df.at[idx, "文字の向き(印刷用)"] = dir_conv.get(direction, direction)
 
     return df
 
