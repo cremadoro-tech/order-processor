@@ -1,4 +1,4 @@
-"""Amazon専用 属性抽出モジュール
+"""Amazon専用 属性抽出モジュール + 複数名行展開
 
 Amazonの備考欄（「23:59:59」以降のフリーテキスト）から、
 書体・カラー・作成名・サイズ・配置等を抽出する。
@@ -324,3 +324,63 @@ def _shorten_product_name(product_name, category):
 
     # デフォルト: 30文字まで
     return name.strip()[:30]
+
+
+def expand_multi_name_rows(row):
+    """備考に複数の名入れがある場合、名前ごとに行を展開する。
+
+    パターン1: 改行区切りで「名入れ文字：【○○】」が複数ある
+      例: 【明朝体】 名入れ文字：【日本郵便】\n【明朝体】 名入れ文字：【松沢志乃】\n...
+      → 各名前ごとに1行
+
+    パターン2: スペース区切りで複数の名前が並んでいる（個数>1）
+      例: 中田　旬　　藤原　想輔　　日戸　珈吹...（個数13）
+      → 全角スペース2つ以上で分割して各名前ごとに1行
+
+    Returns:
+        list[dict]: 展開された行のリスト。展開不要なら1要素のリスト。
+    """
+    options = str(row.get("項目・選択肢", ""))
+    product_name = str(row.get("商品名", ""))
+
+    # パターン1: 「名入れ文字：【○○】」が複数ある
+    names = re.findall(r"名入れ文字[：:]\s*【([^】]+)】", options)
+    if len(names) >= 2:
+        # 書体も各行から取得
+        fonts = re.findall(r"【([^】]*体)】", options)
+        rows = []
+        for i, name in enumerate(names):
+            new_row = row.copy()
+            name_clean = re.sub(r"[\s　]+", "", name) if len(name) <= 5 else re.sub(r"[\s　]+", " ", name).strip()
+            new_row["_expanded_name"] = name_clean
+            new_row["_expanded_font"] = fonts[i] if i < len(fonts) else (fonts[0] if fonts else "")
+            new_row["個数"] = "1"
+            rows.append(new_row)
+        return rows
+
+    # パターン2: 個数>1 かつ スペース区切りで名前が並んでいる
+    try:
+        qty = int(float(str(row.get("個数", "1"))))
+    except (ValueError, TypeError):
+        qty = 1
+
+    if qty >= 2 and options:
+        # 全角スペース2つ以上で分割
+        parts = re.split(r"[\s　]{2,}", options.split("\n")[0].strip())
+        # 最後の要素が注文者名の場合を除外（名前っぽくない長い文字列）
+        name_parts = [p.strip() for p in parts if p.strip() and len(p.strip()) <= 10]
+
+        if len(name_parts) >= 2 and len(name_parts) >= qty * 0.8:
+            rows = []
+            for name in name_parts:
+                if not name:
+                    continue
+                new_row = row.copy()
+                new_row["_expanded_name"] = name
+                new_row["_expanded_font"] = ""
+                new_row["個数"] = "1"
+                rows.append(new_row)
+            return rows
+
+    # 展開不要
+    return [row]

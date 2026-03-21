@@ -19,7 +19,7 @@ from processor.transfer_engine import (
     has_transfer_rules, apply_transfer_rules, get_headers_for_sheet
 )
 from processor.houjin3_splitter import split_houjin3
-from processor.amazon_extractor import extract_amazon_attributes, _shorten_product_name
+from processor.amazon_extractor import extract_amazon_attributes, _shorten_product_name, expand_multi_name_rows
 
 LAYOUTS_FILE = "sheet_layouts.json"
 
@@ -114,19 +114,25 @@ def generate_workbook(df: pd.DataFrame) -> bytes:
                 rakuten_group = rakuten_group.reset_index(drop=True)
                 _write_sheet(wb, sheet_base, rakuten_group, layout, max_rows, barcode_pre, barcode_suf, summary_data)
 
-        # Amazonデータ（専用レイアウト・シート名）
+        # Amazonデータ（専用レイアウト・シート名 + 複数名行展開）
         if has_amazon:
             amazon_group = group[group.get("ソース") == "amazon"]
+
+            # 複数名入れの行展開
+            expanded_rows = []
+            for _, row in amazon_group.iterrows():
+                expanded_rows.extend(expand_multi_name_rows(row))
+            amazon_group = pd.DataFrame(expanded_rows).reset_index(drop=True)
+
             amazon_sheet = amazon_sheet_names.get(sheet_base, sheet_base)
             amazon_layout = amazon_layouts.get(sheet_base, amazon_layouts.get("_default", {}))
-            if "単品複数" in amazon_group.columns:
-                for qty_type, sub_group in amazon_group.groupby("単品複数", sort=False):
-                    sub_group = sub_group.reset_index(drop=True)
-                    sheet_name = f"{amazon_sheet}{qty_type}"
-                    _write_sheet(wb, sheet_name, sub_group, amazon_layout, max_rows, barcode_pre, barcode_suf, summary_data)
-            else:
-                amazon_group = amazon_group.reset_index(drop=True)
-                _write_sheet(wb, amazon_sheet, amazon_group, amazon_layout, max_rows, barcode_pre, barcode_suf, summary_data)
+
+            # Amazonは配送区分でシート分割（単品=AmazonJP, 単品＋=フロンティア+, 複数=フロンティア）
+            amazon_group["_amazon_split"] = amazon_group.apply(_amazon_split_key, axis=1)
+            for split_key, sub_group in amazon_group.groupby("_amazon_split", sort=False):
+                sub_group = sub_group.reset_index(drop=True)
+                sheet_name = f"{amazon_sheet}{split_key}"
+                _write_sheet(wb, sheet_name, sub_group, amazon_layout, max_rows, barcode_pre, barcode_suf, summary_data)
 
     # Summaryシートを先頭に追加
     _write_summary(wb, summary_data)
@@ -290,6 +296,25 @@ def _write_sheet(
         })
 
 
+def _amazon_split_key(row):
+    """Amazon用のシート分割キーを決定。
+
+    マクロ②のI列と同じ分類（ひとことメモベース）:
+    - 単品 = メモに「複数」なし → AmazonJP配送
+    - 単品＋ = メモに「複数」+「単品」両方あり → フロンティア+配送
+    - 複数 = メモに「複数」あり＋「単品」なし → フロンティア配送
+    """
+    memo = str(row.get("ひとことメモ", ""))
+    has_fukusu = "複数" in memo
+    has_tanpin = "単品" in memo
+
+    if has_fukusu and has_tanpin:
+        return "単品＋"
+    elif has_fukusu:
+        return "複数"
+    return "単品"
+
+
 def _extract_value(row: pd.Series, col_def: dict, row_number: int, barcode_pre: str, barcode_suf: str):
     """カラム定義に従ってデータを抽出"""
     source = col_def.get("source", "")
@@ -359,6 +384,12 @@ def _extract_amazon_value(row, header, amazon_attrs, short_name, row_number, bar
     # 短縮商品名
     if src == "short_name":
         return short_name
+
+    # 行展開された場合の優先値
+    if src == "作成名" and "_expanded_name" in row.index and str(row.get("_expanded_name", "")):
+        return str(row.get("_expanded_name", ""))
+    if src == "書体" and "_expanded_font" in row.index and str(row.get("_expanded_font", "")):
+        return str(row.get("_expanded_font", ""))
 
     # Amazon抽出結果
     if src in ("書体", "カラー", "作成名", "サイズ", "配置"):
