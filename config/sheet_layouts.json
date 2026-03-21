@@ -211,6 +211,7 @@
         {"header": "作成名", "amazon_source": "作成名"},
         {"header": "個数", "amazon_source": "個数"},
         {"header": "備考", "amazon_source": ""},
+        {"header": "備考", "amazon_source": ""},
         {"header": "ひとこと", "amazon_source": "ひとことメモ"},
         {"header": "管理番号", "amazon_source": "GoQ管理番号"}
       ]
@@ -231,7 +232,7 @@
     "おむつスキナ": {
       "columns": [
         {"header": "商品名", "amazon_source": "short_name"},
-        {"header": "商品名", "amazon_source": "short_name"},
+        {"header": "商品名", "amazon_source": "_fixed:WES"},
         {"header": "作成名", "amazon_source": "作成名"},
         {"header": "個数", "amazon_source": "個数"},
         {"header": "備考", "amazon_source": ""},
