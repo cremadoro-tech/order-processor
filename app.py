@@ -463,7 +463,8 @@ def render_feature_matrix_page():
     missing = []
 
     df_missing = pd.DataFrame(missing, columns=["不足物", "重要度", "用途", "対応方法"]) if missing else None
-    df_missing.index = range(1, len(df_missing) + 1)
+    if df_missing is not None:
+        df_missing.index = range(1, len(df_missing) + 1)
 
     if df_missing is not None and len(df_missing) > 0:
         st.dataframe(
