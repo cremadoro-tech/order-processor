@@ -1505,7 +1505,29 @@ Excel作業指示書をダウンロードすると、カテゴリごとにシー
 def render_transfer_rules_page():
     """外注マクロ転送ルール管理ページ"""
     st.header("転送ルール管理")
-    st.caption("外注マクロテンプレートNEWの設定シート（39商品×1,219ルール）")
+    st.caption("元の外注マクロ（外注マクロテンプレートNEW.xlsm）の設定シートをそのまま再現しています。")
+
+    st.info("""
+**この設定は何をしているか？**
+
+楽天の注文データには「項目・選択肢」という列があり、お客様が選んだオプションが改行区切りで入っています:
+```
+ボディカラー=ピンク
+書体=楷書体
+イラスト=ハート
+【選択必須】:了承した。
+田中太郎
+```
+
+この転送ルールは、**この複数行テキストから必要な情報を自動的に取り出して、
+Excel作業指示書の正しい列に配置する**ためのルールです。
+
+例: 上のテキストから → カラー列に「ピンク」、書体列に「楷書体」、名前列に「田中太郎」を取り出す
+
+**元の外注マクロの「設定シート」をそのままJSON化したものです。
+39商品（ジョインティ、オスカ、おなまえスタンプ等）ごとに、どの情報を
+どの列に配置するかのルールが定義されています。**
+""")
 
     rules = load_transfer_rules()
     if not rules:
@@ -1514,12 +1536,12 @@ def render_transfer_rules_page():
 
     # 統計
     total_rules = sum(len(d.get("columns", [])) for d in rules.values())
-    st.info(f"**{len(rules)}商品** / **{total_rules}ルール** 定義済み")
+    st.success(f"**{len(rules)}商品** / **{total_rules}ルール** 定義済み")
 
     # 商品カテゴリ選択
     sheet_names = list(rules.keys())
     selected = st.selectbox(
-        "商品カテゴリ",
+        "商品カテゴリを選択（ルールを確認・テストできます）",
         sheet_names,
         format_func=lambda x: f"{x} ({len(rules[x].get('columns', []))}ルール)",
     )
@@ -1528,8 +1550,29 @@ def render_transfer_rules_page():
         columns = rules[selected].get("columns", [])
         headers = get_headers_for_sheet(selected)
 
-        st.subheader(f"{selected} — {len(columns)}ルール / {len(headers)}列")
-        st.write(f"**出力ヘッダー:** {' → '.join(headers)}")
+        st.subheader(f"「{selected}」のルール（{len(columns)}ルール → {len(headers)}列を出力）")
+        st.write(f"**Excelの列順:** {' → '.join(headers)}")
+
+        # 転送方法の解説
+        with st.expander("転送方法の用語解説"):
+            st.markdown("""
+| 方法 | 意味 |
+|------|------|
+| **連番** | 1, 2, 3... と自動的に番号を振る |
+| **固定文字** | 常に同じ値を入力する |
+| **原本から転送** | 元CSVの指定列からデータを取得する（↓の転送方法で詳細を指定） |
+
+| 転送方法 | 意味 | 例 |
+|---------|------|-----|
+| **そのまま** | キーワードを含む行をそのまま出力 | 「書体=楷書体」→「楷書体」 |
+| **変換** | キーワードが見つかったら別の値に置き換え | 「oscca-10」→「オスカ10ｍｍ」 |
+| **右側** | キーワードの右側（=の後）を取得 | 「書体=楷書体」→「楷書体」 |
+| **分割N番目** | 右側をスペースで分割してN番目を取得 | 「名前=田中 太郎」→1番目「田中」 |
+| **不要行除去** | 不要な行を削除してから残りを出力 | システムメッセージを除去 |
+| **残り行** | 上のルールで使われなかった行から取得 | 最後に残った「田中太郎」を名前列に |
+| **字種判別** | 残り行からひらがな/漢字/ローマ字を判別 | おなまえスタンプの3表記分離 |
+| **行番号指定** | 残り行のN番目を取得 | のしスキナの名前1/名前2 |
+""")
 
         # ルール一覧テーブル
         METHOD_LABELS = {1: "連番", 2: "固定文字", 3: "原本から転送", 4: "数式"}
@@ -1542,13 +1585,13 @@ def render_transfer_rules_page():
         table_data = []
         for r in columns:
             table_data.append({
-                "列": r.get("output_col", ""),
-                "ヘッダー": r.get("header", ""),
+                "出力列": r.get("output_col", ""),
+                "Excelヘッダー": r.get("header", ""),
                 "方法": METHOD_LABELS.get(r.get("method"), str(r.get("method", ""))),
-                "転送": TRANSFER_LABELS.get(r.get("transfer"), str(r.get("transfer", ""))),
-                "ソース列": r.get("source_col", ""),
-                "検索KW": ", ".join(r.get("search_keywords", []))[:50],
-                "変換/固定": str(r.get("transform_value", r.get("fixed_value", "")))[:30],
+                "転送方法": TRANSFER_LABELS.get(r.get("transfer"), str(r.get("transfer", ""))),
+                "取得元": r.get("source_col", ""),
+                "検索キーワード": ", ".join(r.get("search_keywords", []))[:50],
+                "変換先/固定値": str(r.get("transform_value", r.get("fixed_value", "")))[:30],
             })
 
         st.dataframe(
@@ -1560,7 +1603,7 @@ def render_transfer_rules_page():
         # テスト実行パネル
         st.divider()
         st.subheader("テスト実行")
-        st.caption("「項目・選択肢」のサンプルテキストを入力して、各ルールの適用結果を確認")
+        st.caption("実際の「項目・選択肢」テキストを貼り付けて、ルールがどう動くかを確認できます。")
 
         test_text = st.text_area(
             "テスト用「項目・選択肢」テキスト",
