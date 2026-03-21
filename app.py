@@ -857,13 +857,21 @@ def render_attribute_settings_page():
     data = load_json("attribute_settings.json")
 
     # 印材キーワード
-    for key, label in [
-        ("material_keywords", "印材キーワード（商品名から検出、優先順位順）"),
-        ("material_suffix_keywords", "印材サフィックス（選択肢から付加）"),
-        ("material_product_suffix", "印材サフィックス（商品名から付加）"),
-    ]:
+    material_sections = [
+        ("material_keywords", "印材キーワード（商品名から検出、優先順位順）",
+         "商品名にこのキーワードが含まれていたら → 印材名を設定",
+         "商品名に含むキーワード", "→ 印材名"),
+        ("material_suffix_keywords", "印材サフィックス（選択肢から付加）",
+         "「項目・選択肢」にこのキーワードが含まれていたら → 印材名の後ろに付加",
+         "選択肢に含むキーワード", "→ 付加する文字"),
+        ("material_product_suffix", "印材サフィックス（商品名から付加）",
+         "商品名にこのキーワードが含まれていたら → 印材名の後ろに付加",
+         "商品名に含むキーワード", "→ 付加する文字"),
+    ]
+    for key, label, desc, kw_lbl, val_lbl in material_sections:
         with st.expander(label, expanded=(key == "material_keywords")):
-            _render_kv_list_editor(data, key, f"attr_{key}")
+            st.caption(desc)
+            _render_kv_list_editor(data, key, f"attr_{key}", kw_label=kw_lbl, val_label=val_lbl)
 
     # サイズ
     with st.expander("サイズパターン (mm)"):
@@ -872,10 +880,22 @@ def render_attribute_settings_page():
 
     # 書体キーワード
     with st.expander("書体キーワード"):
-        _render_kv_list_editor(data, "font_keywords", "font_kw")
+        st.caption("「項目・選択肢」にこのキーワードが含まれていたら → 書体名を設定")
+        _render_kv_list_editor(data, "font_keywords", "font_kw", kw_label="選択肢に含むキーワード", val_label="→ 書体名")
 
     # 書体変換テーブル
     with st.expander("書体変換テーブル（日本語名→フォント名）"):
+        st.caption("書体キーワードで検出された書体名を、印刷用のフォント名に変換します。")
+        h_cols = st.columns([3, 3, 1, 1])
+        with h_cols[0]:
+            st.markdown("**書体名（日本語）**")
+        with h_cols[1]:
+            st.markdown("**→ フォント名（印刷用）**")
+        with h_cols[2]:
+            st.markdown("**保存**")
+        with h_cols[3]:
+            st.markdown("**削除**")
+
         conv = data.get("font_conversion", {})
         changed = False
         for i, (k, v) in enumerate(list(conv.items())):
@@ -910,10 +930,22 @@ def render_attribute_settings_page():
 
     # 文字の向き
     with st.expander("文字の向きキーワード"):
-        _render_kv_list_editor(data, "direction_keywords", "dir_kw")
+        st.caption("「項目・選択肢」にこのキーワードが含まれていたら → 文字の向きを設定")
+        _render_kv_list_editor(data, "direction_keywords", "dir_kw", kw_label="選択肢に含むキーワード", val_label="→ 文字の向き")
 
     # 文字の向き変換
     with st.expander("文字の向き変換テーブル"):
+        st.caption("検出された向きを、印刷用の表記に変換します。")
+        h_cols2 = st.columns([3, 3, 1, 1])
+        with h_cols2[0]:
+            st.markdown("**検出された向き**")
+        with h_cols2[1]:
+            st.markdown("**→ 印刷用表記**")
+        with h_cols2[2]:
+            st.markdown("**保存**")
+        with h_cols2[3]:
+            st.markdown("**削除**")
+
         dconv = data.get("direction_conversion", {})
         for i, (k, v) in enumerate(list(dconv.items())):
             cols = st.columns([3, 3, 1, 1])
@@ -1356,10 +1388,21 @@ def _render_string_list_editor(data: dict, key: str, items: list, prefix: str):
         st.rerun()
 
 
-def _render_kv_list_editor(data: dict, key: str, prefix: str):
+def _render_kv_list_editor(data: dict, key: str, prefix: str, kw_label="検索キーワード", val_label="値"):
     """keyword/valueペアリストの編集UI"""
     settings_file = _guess_settings_file(key)
     items = data.get(key, [])
+
+    # ヘッダー行
+    h_cols = st.columns([3, 3, 1, 1])
+    with h_cols[0]:
+        st.markdown(f"**{kw_label}**")
+    with h_cols[1]:
+        st.markdown(f"**{val_label}**")
+    with h_cols[2]:
+        st.markdown("**保存**")
+    with h_cols[3]:
+        st.markdown("**削除**")
 
     for i, item in enumerate(items):
         cols = st.columns([3, 3, 1, 1])
