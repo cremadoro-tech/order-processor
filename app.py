@@ -1331,22 +1331,52 @@ def render_product_db_page():
 def render_sheet_layout_page():
     """シートレイアウト管理ページ"""
     st.header("📋 シートレイアウト設定")
-    st.caption("カテゴリごとのExcel出力シートのカラム構成を管理します。")
+    st.caption("Excel作業指示書の各シートに「どの列を、どの順番で出力するか」を定義します。")
+
+    st.info("""
+**この設定は何をしているか？**
+
+Excel作業指示書をダウンロードすると、カテゴリごとにシートが分かれます。
+各シートに表示される**列（カラム）の内容と順番**をここで定義しています。
+
+例: 「ジョインティ」シートの場合
+```
+番号 | 商品名 | カラー | 書体 | イラスト | 名前 | バーコード | 個数 | 備考 | 単品
+```
+この列の並びを変えたり、列を追加・削除したりできます。
+
+**注意:** 転送ルール（外注マクロ）が定義されているカテゴリ（39商品）は、
+転送ルール側の定義が優先されるため、ここで編集しても反映されません。
+転送ルールページで確認してください。
+""")
 
     data = load_json("sheet_layouts.json")
     layouts = data.get("layouts", {})
 
     # 共通設定
     st.subheader("共通設定")
+    st.caption("全シートに共通する設定です。")
     sc1, sc2 = st.columns(2)
     with sc1:
-        max_rows = st.number_input("シートあたり最大行数", value=data.get("max_rows_per_sheet", 100), min_value=10, step=10)
+        max_rows = st.number_input(
+            "シートあたり最大行数",
+            value=data.get("max_rows_per_sheet", 100), min_value=10, step=10,
+            help="この行数を超えると自動でPart分割されます（例: Part_1, Part_2...）",
+        )
         if max_rows != data.get("max_rows_per_sheet"):
             data["max_rows_per_sheet"] = max_rows
             save_json("sheet_layouts.json", data)
     with sc2:
-        bp = st.text_input("バーコードプレフィックス", value=data.get("barcode_prefix", "*"))
-        bs = st.text_input("バーコードサフィックス", value=data.get("barcode_suffix", "*"))
+        bp = st.text_input(
+            "バーコードプレフィックス",
+            value=data.get("barcode_prefix", "*"),
+            help="GoQ管理番号の前に付く文字（CODE39形式: *）",
+        )
+        bs = st.text_input(
+            "バーコードサフィックス",
+            value=data.get("barcode_suffix", "*"),
+            help="GoQ管理番号の後に付く文字（CODE39形式: *）",
+        )
         if bp != data.get("barcode_prefix") or bs != data.get("barcode_suffix"):
             data["barcode_prefix"] = bp
             data["barcode_suffix"] = bs
@@ -1356,13 +1386,31 @@ def render_sheet_layout_page():
 
     # カテゴリ別レイアウト
     layout_names = [k for k in layouts.keys() if k != "_comment"]
-    selected = st.selectbox("編集するレイアウト", layout_names)
+    selected = st.selectbox(
+        "編集するカテゴリのレイアウト",
+        layout_names,
+        help="Excelの各シートに対応。ここで選んだカテゴリの列構成を編集できます。",
+    )
 
     if selected:
         layout = layouts[selected]
         columns = layout.get("columns", [])
 
-        st.subheader(f"「{selected}」のカラム構成（{len(columns)}列）")
+        st.subheader(f"「{selected}」の列構成（{len(columns)}列）")
+        st.caption("上から順にExcelのA列、B列、C列...として出力されます。")
+
+        # ヘッダー行
+        h_cols = st.columns([2, 3, 2, 1, 1])
+        with h_cols[0]:
+            st.markdown("**Excelヘッダー名**")
+        with h_cols[1]:
+            st.markdown("**データの取得元**")
+        with h_cols[2]:
+            st.markdown("**抽出方法**")
+        with h_cols[3]:
+            st.markdown("**保存**")
+        with h_cols[4]:
+            st.markdown("**削除**")
 
         # カラム一覧を表形式で表示・編集
         for i, col in enumerate(columns):
@@ -1377,7 +1425,7 @@ def render_sheet_layout_page():
                     data["layouts"][selected]["columns"][i]["source"] = new_src
             with cols[2]:
                 ext = col.get("extract", "")
-                new_ext = st.text_input(f"抽出{i}", value=ext, key=f"se_{selected}_{i}", label_visibility="collapsed", placeholder="(抽出方法)")
+                new_ext = st.text_input(f"抽出{i}", value=ext, key=f"se_{selected}_{i}", label_visibility="collapsed", placeholder="(なし)")
                 if new_ext != ext:
                     if new_ext:
                         data["layouts"][selected]["columns"][i]["extract"] = new_ext
@@ -1394,16 +1442,42 @@ def render_sheet_layout_page():
                     save_json("sheet_layouts.json", data)
                     st.rerun()
 
+        # 用語解説
+        with st.expander("用語の説明"):
+            st.markdown("""
+| 項目 | 意味 | 例 |
+|------|------|-----|
+| **Excelヘッダー名** | Excelの1行目に表示される列名 | 「番号」「商品名」「書体」 |
+| **データの取得元** | 元CSVのどの列からデータを取るか | 「商品名」「項目・選択肢」「GoQ管理番号」 |
+| **抽出方法** | 取得元から特定のデータだけを取り出す方法（省略可） | 下記参照 |
+
+**特殊なデータの取得元:**
+- `_row_number` → 連番（1, 2, 3...）を自動入力
+
+**抽出方法の一覧:**
+| 値 | 動作 |
+|----|------|
+| `size_mm` | 商品名から「【10.5mm】」のようなサイズ部分だけを抽出 |
+| `product_short` | 商品名を短縮（クーポン表記等を除去、30文字まで） |
+| `body_color` | 項目・選択肢から「カラー=○○」の値だけを抽出 |
+| `illustration` | 項目・選択肢から「イラスト=○○」の値だけを抽出 |
+| `ink_color` | 項目・選択肢から「墨色=○○」の値だけを抽出 |
+| `sei` | 名前のスペース区切りの前半（姓）を抽出 |
+| `mei` | 名前のスペース区切りの後半（名）を抽出 |
+| (空欄) | 取得元の値をそのまま表示 |
+""")
+
         # カラム追加
         st.write("---")
+        st.caption("新しい列を追加")
         ac1, ac2, ac3 = st.columns(3)
         with ac1:
-            new_header = st.text_input("新しいヘッダー名", key=f"new_h_{selected}")
+            new_header = st.text_input("Excelヘッダー名", key=f"new_h_{selected}", placeholder="例: 書体")
         with ac2:
-            new_source = st.text_input("ソース列名", key=f"new_s_{selected}", help="元データの列名 or _row_number")
+            new_source = st.text_input("データの取得元", key=f"new_s_{selected}", placeholder="例: 書体", help="元データの列名 or _row_number")
         with ac3:
-            new_extract = st.text_input("抽出方法（任意）", key=f"new_e_{selected}", placeholder="size_mm, body_color等")
-        if st.button("カラム追加", key=f"add_col_{selected}") and new_header and new_source:
+            new_extract = st.text_input("抽出方法（省略可）", key=f"new_e_{selected}", placeholder="例: body_color")
+        if st.button("列を追加", key=f"add_col_{selected}") and new_header and new_source:
             new_col = {"header": new_header, "source": new_source}
             if new_extract:
                 new_col["extract"] = new_extract
@@ -1413,8 +1487,9 @@ def render_sheet_layout_page():
 
     # 新しいレイアウト追加
     st.divider()
-    st.subheader("新しいレイアウトを追加")
-    new_layout_name = st.text_input("カテゴリ名（カテゴリ管理のカテゴリ名と一致させる）", key="new_layout_name")
+    st.subheader("新しいカテゴリのレイアウトを追加")
+    st.caption("新しい商品カテゴリ用のExcelシート列構成を作成します。")
+    new_layout_name = st.text_input("カテゴリ名", key="new_layout_name", placeholder="例: チタン法人")
     if st.button("レイアウト追加", key="add_layout") and new_layout_name:
         if new_layout_name not in layouts:
             # デフォルトレイアウトをコピー
