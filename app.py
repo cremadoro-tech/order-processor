@@ -56,12 +56,14 @@ def main():
     # サイドバー: ページ切り替え
     page = st.sidebar.radio(
         "ページ",
-        ["処理", "パターン管理", "カテゴリ管理", "印鑑設定", "属性設定", "作成名設定", "商品DB", "シートレイアウト"],
+        ["処理", "使い方", "機能対照表", "パターン管理", "カテゴリ管理", "印鑑設定", "属性設定", "作成名設定", "商品DB", "シートレイアウト"],
         index=0,
     )
 
     pages = {
         "処理": render_processing_page,
+        "使い方": render_manual_page,
+        "機能対照表": render_feature_matrix_page,
         "パターン管理": render_patterns_page,
         "カテゴリ管理": render_categories_page,
         "印鑑設定": render_seal_settings_page,
@@ -71,6 +73,325 @@ def main():
         "シートレイアウト": render_sheet_layout_page,
     }
     pages[page]()
+
+
+def render_manual_page():
+    """使い方マニュアル"""
+    st.header("使い方マニュアル")
+
+    st.subheader("基本の流れ")
+    st.markdown("""
+```
+CSVアップロード → 自動処理 → 結果確認 → ダウンロード
+```
+
+**1クリックで、受注CSVが作業指示書Excelになります。**
+""")
+
+    st.divider()
+    st.subheader("STEP 1: CSVをアップロード")
+    st.markdown("""
+- サイドバーの「処理」ページを選択
+- 「CSVアップロード」エリアにファイルをドラッグ＆ドロップ（複数同時OK）
+- **対応フォーマット:**
+  - 楽天分元データ.csv（楽天RMSエクスポート）
+  - 楽天Amazon以外元データ.csv（Qoo10等のGoQエクスポート）
+- Shift-JIS / UTF-8 どちらも自動判定
+- 楽天 / 楽天Amazon以外もヘッダー名で自動判定
+""")
+
+    st.divider()
+    st.subheader("STEP 2: 自動処理")
+    st.markdown("""
+アップロード後、以下の処理が自動で実行されます:
+
+| 処理 | 内容 |
+|------|------|
+| カラム正規化 | 楽天/非楽天のカラム順の違いを統一 |
+| クレンジング | 備考欄から136種の不要文字列を削除、改行記号を変換 |
+| カテゴリ判定 | ひとことメモからジョインティ・ゴム・おなまえ等14カテゴリに振り分け |
+| 商品コード照合 | SKUから製品カテゴリ（Normal/titan/swaro等）を自動判定 |
+| 単品/複数判定 | 注文番号ごとに商品種類数を計算して振り分け |
+| JP行/フロンティア行 | 配送区分を自動判定 |
+| 印影確認判定 | キーワード検出→同一注文番号の全行に波及 |
+| 注意事項抽出 | 旧字・備考から「注意事項」を生成 |
+| 属性解析 | 商品名/選択肢から印材・サイズ・書体・文字の向きを抽出 |
+| 書体変換 | 楷書体→泰楷書太 等のフォント名に変換 |
+| 作成名抽出 | 正規表現で名前を抽出し、ひらがな/漢字/ローマ字を判別 |
+| ジョインティチェック | 文字数×配置の整合性を警告 |
+""")
+
+    st.divider()
+    st.subheader("STEP 3: 結果を確認")
+    st.markdown("""
+- **カテゴリ別件数**: 各カテゴリに何件振り分けられたかを一覧表示
+- **データプレビュー**: カテゴリタブで絞り込んで中身を確認
+- **警告表示**: ジョインティの整合性エラー等があれば赤字で表示
+""")
+
+    st.divider()
+    st.subheader("STEP 4: ダウンロード")
+    st.markdown("""
+3種類のダウンロードが可能です:
+
+| ボタン | 内容 |
+|--------|------|
+| **全件CSV** | 全データをBOM付きUTF-8のCSVで出力 |
+| **カテゴリ別ZIP** | カテゴリごとのCSVをZIPにまとめて出力 |
+| **Excel作業指示書** | カテゴリ×単品複数でシート分割されたExcelファイル |
+
+**Excel作業指示書の特徴:**
+- カテゴリごとにシートが分かれる（ジョインティ_単品、ジョインティ_複数 等）
+- 100行ごとにPart分割（印刷用）
+- Summaryシート（全シートの件数・数量を集計）
+- バーコード生成（CODE39形式）
+- フロンティア行は赤背景、個数2以上はピンク色
+""")
+
+    st.divider()
+    st.subheader("設定の変更方法")
+
+    writable = is_writable()
+    if writable:
+        st.success("このアプリは書き込み可能です。各設定ページから直接編集できます。")
+    else:
+        st.warning("Streamlit Cloud上のため読み取り専用です。設定変更はGitHub経由で行います。")
+
+    st.markdown("""
+| 設定ページ | できること |
+|-----------|----------|
+| **パターン管理** | クレンジング用の削除文字列を追加・編集・削除 |
+| **カテゴリ管理** | カテゴリのキーワード追加・優先順位変更 |
+| **印鑑設定** | 印影確認キーワード・旧字パターンの編集 |
+| **属性設定** | 印材・サイズ・書体・文字の向きのキーワード編集 |
+| **作成名設定** | 作成名抽出キーワード・停止キーワードの編集 |
+| **商品DB** | 商品コード→カテゴリ対応表の閲覧・CSVアップロード登録 |
+| **シートレイアウト** | Excel出力時のカテゴリ別カラム定義の編集 |
+""")
+
+    if not writable:
+        st.subheader("GitHub経由での設定変更手順")
+        st.markdown("""
+1. [GitHubリポジトリ](https://github.com/cremadoro-tech/order-processor) を開く
+2. `config/` フォルダ内の該当JSONファイルを選択
+3. 鉛筆アイコン（Edit）をクリック
+4. 内容を編集して「Commit changes」
+5. 数分後にStreamlit Cloudが自動で再デプロイ
+
+**主な設定ファイル:**
+| ファイル | 内容 |
+|---------|------|
+| `cleansing_patterns.json` | 削除パターン136件 |
+| `categories.json` | カテゴリキーワード |
+| `product_db.json` | 楽天印鑑DB（11,386件） |
+| `outsource_db.json` | 外注品DB（2,505件） |
+| `amazon_db.json` | Amazon DB（297件） |
+| `seal_settings.json` | 印影確認設定 |
+| `attribute_settings.json` | 属性設定 |
+| `name_settings.json` | 作成名設定 |
+| `sheet_layouts.json` | Excelシートレイアウト |
+""")
+
+    st.divider()
+    st.subheader("商品DBの更新方法")
+    st.markdown("""
+商品DBページからCSVアップロードで一括登録できます。
+
+**CSVフォーマット（2列）:**
+```
+商品コード,カテゴリ
+SKN-S6025,gomu
+JOINTYJ9-10-PYE,jyoin
+TS-105,normal
+```
+
+- 1列目: 商品コード（SKU）
+- 2列目: 製品カテゴリ（normal/titan/swaro/houseki/houjin/naire/gomu/jyoin 等）
+- 既存のコードは上書き、新規コードは追加
+""")
+
+    st.divider()
+    st.subheader("トラブルシューティング")
+    st.markdown("""
+| 症状 | 原因 | 対処法 |
+|------|------|--------|
+| CSVが読み込めない | 文字コードが対応外 | Shift-JISまたはUTF-8で保存し直す |
+| カテゴリが「その他」になる | ひとことメモにキーワードがない | カテゴリ管理でキーワードを追加 |
+| 商品コードが照合されない | DBに未登録 | 商品DBページでCSVアップロード |
+| Excelのシートが空 | シートレイアウトの列定義が未設定 | シートレイアウトページで設定 |
+| 「読み取り専用モード」表示 | Streamlit Cloud上で実行中 | 正常。設定変更はGitHub経由で |
+""")
+
+
+def render_feature_matrix_page():
+    """機能対照表ページ"""
+    st.header("機能対照表: 元マクロ vs アプリ")
+    st.caption("元のExcelマクロ4つの全機能と、このアプリでの対応状況")
+
+    st.subheader("元のExcelマクロ（4ファイル）")
+    st.markdown("""
+| # | ファイル | 対象モール | 対象商品 |
+|---|---------|----------|---------|
+| 1 | 振り分け用テンプレート 新Ver3.xls | 楽天 | 印鑑 |
+| 2 | Amazon印鑑テンプレート 新2.xlsm | Amazon | 印鑑 |
+| 3 | 外注マクロテンプレートNEW.xlsm | 楽天 | おなまえ・ゴム印・ジョインティ |
+| 4 | アシールamazonテンプレートNEW.xlsm | Amazon | アシール専用 |
+""")
+
+    st.divider()
+    st.subheader("実装済み機能")
+    implemented = [
+        ("CSV読み込み（Shift-JIS/UTF-8）", "reader.py"),
+        ("楽天/楽天Amazon以外の自動判定", "detect_platform()"),
+        ("カラム正規化（列順の違い吸収）", "normalizer.py"),
+        ("不要文字列削除（136パターン）", "cleanser.py"),
+        ("改行記号変換（##/###/●●●/<br>）", "改行変換マップ"),
+        ("連続改行・先頭末尾空白の除去", "cleanser.py"),
+        ("商品コード照合（完全→前方→部分一致）", "product_lookup.py"),
+        ("印影確認キーワード検出", "seal_checker.py"),
+        ("印影確認の同一注文番号への波及", "_propagate_by_order()"),
+        ("販売課判定", "seal_checker.py"),
+        ("単品/複数/単品+判定（辞書方式）", "quantity_checker.py"),
+        ("JP行/フロンティア行判定", "_check_delivery_type()"),
+        ("ヤフー備考欄確認（「備考=」抽出）", "caution_extractor.py"),
+        ("楽天旧字確認（「注意」生成）", "_extract_kyuji()"),
+        ("印材判別（商品名→キーワードマッチ）", "attribute_parser.py"),
+        ("サイズ判別（【xxmm】抽出）", "attribute_parser.py"),
+        ("書体判別（作成内容→キーワード）", "attribute_parser.py"),
+        ("文字の向き判別（タテ/ヨコ/フルネーム）", "attribute_parser.py"),
+        ("書体変換（楷書体→泰楷書太 等6種）", "attribute_parser.py"),
+        ("作成名抽出（正規表現）", "name_extractor.py"),
+        ("ひらがな/漢字/ローマ字/カタカナ判別", "_detect_char_type()"),
+        ("カテゴリ別シート振り分け", "excel_generator.py"),
+        ("100行Part分割（印刷用）", "excel_generator.py"),
+        ("Summaryシート（件数・数量集計）", "excel_generator.py"),
+        ("バーコード生成（CODE39形式）", "excel_generator.py"),
+        ("個数2以上にピンク色", "excel_generator.py"),
+        ("フロンティア行に赤背景", "excel_generator.py"),
+        ("ジョインティ文字数×配置チェック", "jointy_checker.py"),
+        ("全設定のUI管理（8ページ）", "app.py"),
+        ("商品DBのCSVアップロード登録", "app.py"),
+    ]
+
+    df_impl = pd.DataFrame(implemented, columns=["機能", "実装箇所"])
+    df_impl.index = range(1, len(df_impl) + 1)
+    st.dataframe(df_impl, use_container_width=True, height=min(len(df_impl) * 35 + 40, 600))
+    st.success(f"実装済み: {len(implemented)}機能")
+
+    st.divider()
+    st.subheader("未実装機能")
+    not_implemented = [
+        ("Amazon専用CSV処理", "高",
+         "Amazon（GoQ）のCSVフォーマットが異なる。「23:59:59」以降の作成内容抽出等が必要"),
+        ("外注マクロの「設定シート駆動」11パターン転送", "高",
+         "残った行→次のルールが抽出する「消費型」ロジック。設定シートのA〜I列のルール定義が必要"),
+        ("法人3本セット分割", "中",
+         "1行→3シートに分割して統合する法人特有の処理"),
+        ("PDF出力・印刷レイアウト", "中",
+         "Amazon印鑑テンプレのフォントサイズ80-100pt、行高さ250等・改ページ挿入"),
+        ("アシール正規表現抽出（高度版）", "中",
+         "氏名印のフルネーム対応・先読み付きパターン（VBScript.RegExp相当）"),
+        ("ジョインティのイラスト名プレフィックス付与", "低",
+         "すまいるばん→「すまいる」、わんこばん→「わんこ」等の自動付与"),
+        ("ジョインティの2行区切りフラグ", "低",
+         "M列に赤字「2行区切り必要」表示"),
+        ("ジョインティ配置番号の正規化", "低",
+         "「配置16」含む長い文字列→「配置16」に統一"),
+        ("文字の向き変換（印刷用表記）", "低",
+         "タテ→「姓（タテ彫）」、ヨコ→「名（ヨコ彫）右から左」への変換"),
+    ]
+
+    df_not = pd.DataFrame(not_implemented, columns=["機能", "重要度", "備考"])
+    df_not.index = range(1, len(df_not) + 1)
+
+    # 重要度で色分け
+    def highlight_priority(row):
+        if row["重要度"] == "高":
+            return ["background-color: #ffcccc"] * len(row)
+        elif row["重要度"] == "中":
+            return ["background-color: #fff3cd"] * len(row)
+        return [""] * len(row)
+
+    st.dataframe(
+        df_not.style.apply(highlight_priority, axis=1),
+        use_container_width=True,
+        height=min(len(df_not) * 35 + 40, 400),
+    )
+    st.warning(f"未実装: {len(not_implemented)}機能（高: {sum(1 for x in not_implemented if x[1] == '高')}, 中: {sum(1 for x in not_implemented if x[1] == '中')}, 低: {sum(1 for x in not_implemented if x[1] == '低')}）")
+
+    st.divider()
+    st.subheader("準備物の不足リスト")
+    missing = [
+        ("Amazon（GoQ）のサンプルCSV", "高",
+         "Amazon専用処理の実装・テストに必要",
+         "GoQシステムからエクスポートして用意"),
+        ("外注マクロの「設定シート」の中身", "高",
+         "11パターン転送ルールの再現に必要",
+         "外注マクロテンプレートNEW.xlsmの「設定」シートをCSVエクスポート"),
+        ("データベースシート（商品コード→カテゴリ）", "中",
+         "商品コード照合ヒット率を88.4%→100%に改善",
+         "各マクロの「データベース」シートをCSVエクスポートして商品DBに登録"),
+        ("法人3本セットの完成サンプル", "低",
+         "法人分割ロジックの検証に必要",
+         "法人3本分割1/2/3のサンプルExcel"),
+    ]
+
+    df_missing = pd.DataFrame(missing, columns=["不足物", "重要度", "用途", "対応方法"])
+    df_missing.index = range(1, len(df_missing) + 1)
+
+    st.dataframe(
+        df_missing.style.apply(highlight_priority, axis=1),
+        use_container_width=True,
+    )
+
+    st.divider()
+    st.subheader("全体フロー図")
+    st.markdown("""
+```
+【入口】
+  楽天分元データ.csv          ← 楽天RMSからエクスポート
+  楽天Amazon以外元データ.csv  ← Qoo10等のGoQエクスポート
+  (Amazon GoQ CSV)            ← 未対応
+            │
+            ▼
+【STEP 1: 読み込み・正規化】
+  ファイル読み込み → 文字コード自動判定 → プラットフォーム判定 → カラム統一
+            │
+            ▼
+【STEP 2: クレンジング】
+  不要文字列136種削除 → 改行記号変換 → 連続改行圧縮 → 空白除去
+            │
+            ▼
+【STEP 3: 分類・判定】
+  カテゴリ判定（14種） → 商品コード照合 → 単品/複数判定
+  → 印影確認判定 → 販売課判定 → JP行/フロンティア行
+            │
+            ▼
+【STEP 4: 属性抽出】
+  注意事項抽出 → 印材/サイズ/書体/向き解析 → 書体変換
+  → 作成名抽出 → 文字種判別 → ジョインティ整合性チェック
+            │
+            ▼
+【STEP 5: 出力】
+  全件CSV / カテゴリ別ZIP / Excel作業指示書（カテゴリ×単品複数シート分割）
+            │
+            ▼
+【出口】
+  各外注先・製造担当へ配布
+```
+""")
+
+    st.subheader("次のステップ（優先順位）")
+    st.markdown("""
+```
+最優先: Amazon CSV対応 + AmazonサンプルCSVの準備
+   ↓   これがないと全受注の半分が処理できない
+次点:  設定シート駆動転送 + 設定シートの中身の準備
+   ↓   外注品の精密な列配置に必要
+その次: データベースシートのCSVエクスポート → 商品DB登録
+   ↓   ヒット率88.4% → 95%+に改善
+```
+""")
 
 
 def render_processing_page():
