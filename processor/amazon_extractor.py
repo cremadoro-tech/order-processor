@@ -71,6 +71,11 @@ def _extract_font(text):
     if match_reverse:
         return match_reverse.group(2).strip()  # 刻印の値が本当の書体
 
+    # パターン0: 「名入れ書体：/004.有澤楷書体」のし用番号付き書体
+    match = re.search(r"名入れ書体[：:/]+\s*(\d+\.[^\s　\n【]+)", text)
+    if match:
+        return match.group(1).strip().rstrip("※")
+
     # パターン1: 【書体：○○】 or 書体：【○○】
     match = re.search(r"(?:名入れ)?書体[：:]\s*【([^】]+)】", text)
     if match:
@@ -262,6 +267,14 @@ def _extract_direction(text, product_name):
         return "ヨコ"
     if "タテ書き" in product_name or "縦書き" in product_name:
         return "タテ"
+
+    # テキスト内に「タテ」「たて」「縦」があればタテ
+    if text and re.search(r"(?:タテ|たて|縦)", text):
+        return "タテ"
+
+    # のべ台（科目印・氏名印）はデフォルト「ヨコ」
+    if "科目印" in product_name or "氏名印" in product_name:
+        return "ヨコ"
 
     return ""
 

@@ -430,13 +430,19 @@ def _extract_amazon_value(row, header, amazon_attrs, short_name, row_number, bar
     if src == "ひとことメモ":
         return _safe_str(row.get("ひとことメモ", ""))
     if src == "単品複数":
-        # AmazonJP / フロンティア / フロンティア+ の形式にする
-        qty = str(row.get("単品複数", ""))
-        delivery = str(row.get("配送区分", ""))
-        if "フロンティア" in delivery:
-            if qty == "単品+":
-                return "フロンティア+"
-            return "フロンティア"
+        # AmazonJP / Amazonフロンティア / フロンティア+ の形式
+        memo = _safe_str(row.get("ひとことメモ", ""))
+        has_fukusu = "複数" in memo
+        has_tanpin = "単品" in memo
+        if has_fukusu and has_tanpin:
+            return "Amazonフロンティア+"
+        elif has_fukusu:
+            return "Amazonフロンティア"
+        qty = _safe_str(row.get("単品複数", ""))
+        if qty == "複数":
+            return "Amazonフロンティア"
+        if qty == "単品+":
+            return "Amazonフロンティア+"
         return "AmazonJP"
     if src == "注文者氏名":
         return str(row.get("注文者氏名", ""))
