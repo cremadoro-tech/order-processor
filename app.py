@@ -51,33 +51,62 @@ st.set_page_config(
 
 def main():
     st.title("📦 受注処理システム")
-    st.caption("CSVアップロード → クレンジング → カテゴリ別振り分け → ダウンロード")
+    st.caption("CSVアップロード → クレンジング → カテゴリ別振り分け → Excel作業指示書")
 
     # 読み取り専用警告
     if not is_writable():
         st.sidebar.warning("読み取り専用モード（設定変更はGitHub経由）")
 
-    # サイドバー: ページ切り替え
+    # サイドバー: 5ページ構成
+    st.sidebar.markdown("### 毎日の作業")
     page = st.sidebar.radio(
         "ページ",
-        ["処理", "使い方", "機能対照表", "パターン管理", "カテゴリ管理", "印鑑設定", "属性設定", "作成名設定", "商品DB", "シートレイアウト", "転送ルール"],
+        ["📦 処理", "⚙️ 設定", "🗄️ 商品DB", "📖 使い方", "🔧 開発者向け"],
         index=0,
+        label_visibility="collapsed",
     )
 
     pages = {
-        "処理": render_processing_page,
-        "使い方": render_manual_page,
-        "機能対照表": render_feature_matrix_page,
-        "パターン管理": render_patterns_page,
-        "カテゴリ管理": render_categories_page,
-        "印鑑設定": render_seal_settings_page,
-        "属性設定": render_attribute_settings_page,
-        "作成名設定": render_name_settings_page,
-        "商品DB": render_product_db_page,
-        "シートレイアウト": render_sheet_layout_page,
-        "転送ルール": render_transfer_rules_page,
+        "📦 処理": render_processing_page,
+        "⚙️ 設定": render_settings_page,
+        "🗄️ 商品DB": render_product_db_page,
+        "📖 使い方": render_manual_page,
+        "🔧 開発者向け": render_developer_page,
     }
     pages[page]()
+
+
+def render_settings_page():
+    """設定ページ — 8つの設定をタブで統合"""
+    st.header("⚙️ 設定")
+
+    if not is_writable():
+        st.warning("Streamlit Cloud上のため、変更は一時的です。恒久反映はGitHub経由で行ってください。")
+
+    tab_names = ["パターン", "カテゴリ", "印鑑", "属性", "作成名", "シートレイアウト", "転送ルール"]
+    tabs = st.tabs(tab_names)
+
+    with tabs[0]:
+        render_patterns_page()
+    with tabs[1]:
+        render_categories_page()
+    with tabs[2]:
+        render_seal_settings_page()
+    with tabs[3]:
+        render_attribute_settings_page()
+    with tabs[4]:
+        render_name_settings_page()
+    with tabs[5]:
+        render_sheet_layout_page()
+    with tabs[6]:
+        render_transfer_rules_page()
+
+
+def render_developer_page():
+    """開発者向けページ — 機能対照表 + システム情報"""
+    st.header("🔧 開発者向け")
+    st.caption("システムの内部構造・元マクロとの互換性情報です。通常の運用では不要です。")
+    render_feature_matrix_page()
 
 
 def render_manual_page():
@@ -505,14 +534,26 @@ def render_processing_page():
 
     # 処理実行
     if st.button("処理を実行", type="primary", use_container_width=True):
-        with st.spinner("処理中..."):
-            df = process_files(uploaded_files)
+        try:
+            with st.spinner("処理中..."):
+                df = process_files(uploaded_files)
 
-        if df is not None:
-            st.session_state["result_df"] = df
+            if df is not None:
+                st.session_state["result_df"] = df
+                # 履歴に保存（直近5件）
+                _save_to_history(df, uploaded_files)
+        except Exception as e:
+            st.error(f"""
+**処理中にエラーが発生しました**
 
-            # 履歴に保存（直近5件）
-            _save_to_history(df, uploaded_files)
+{str(e)}
+
+以下を確認してください:
+1. CSVファイルがShift-JIS / UTF-8で保存されているか
+2. CSVのヘッダー行（1行目）が正しいか
+3. ファイルが空でないか
+""")
+            return
 
     # 結果表示
     if "result_df" in st.session_state:
@@ -552,8 +593,6 @@ def _save_to_history(df, uploaded_files):
         "category_summary": cat_summary,
         "csv_bytes": csv_bytes,
         "zip_bytes": zip_bytes,
-        "excel_bytes": None,  # 重いので要求時に生成
-        "df": df,
     }
 
     # 先頭に追加、5件超えたら古いのを削除
@@ -589,7 +628,7 @@ def _render_history():
                 st.caption(summary_text)
 
             # ダウンロードボタン
-            dl_cols = st.columns(3)
+            dl_cols = st.columns(2)
             with dl_cols[0]:
                 st.download_button(
                     label="📥 全件CSV",
@@ -608,65 +647,52 @@ def _render_history():
                     key=f"hist_zip_{i}",
                     use_container_width=True,
                 )
-            with dl_cols[2]:
-                if st.button("📊 Excel生成", key=f"hist_excel_btn_{i}", use_container_width=True):
-                    with st.spinner("Excel生成中..."):
-                        entry["excel_bytes"] = generate_workbook(entry["df"])
-                    st.rerun()
-
-                if entry.get("excel_bytes"):
-                    st.download_button(
-                        label="📥 作業指示書Excel",
-                        data=entry["excel_bytes"],
-                        file_name=f"作業指示書_{entry['timestamp'].replace(':', '')}.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        key=f"hist_excel_{i}",
-                        use_container_width=True,
-                    )
 
 
 def process_files(uploaded_files) -> pd.DataFrame:
     """アップロードされたCSVを処理して統合DataFrameを返す。"""
     dfs = []
-    progress = st.progress(0, text="CSV読み込み中...")
-    total_steps = len(uploaded_files) + 5  # ファイル数 + 後処理5ステップ
+    num_files = len(uploaded_files)
+    # 正確なステップ数: ファイル数 + 後処理6ステップ
+    total_steps = num_files + 6
     step = 0
 
+    progress = st.progress(0, text="CSV読み込み中...")
+
     for i, file in enumerate(uploaded_files):
+        step += 1
+        progress.progress(step / total_steps, text=f"📁 {file.name} を読み込み中 ({i+1}/{num_files})")
         raw_df = read_csv(file)
         platform = detect_platform(raw_df)
         st.write(f"✅ **{file.name}** → {_platform_label(platform)} ({len(raw_df):,}件)")
         norm_df = normalize(raw_df, platform)
         clean_df = cleanse(norm_df)
         dfs.append(clean_df)
-        step += 1
-        progress.progress(step / total_steps, text=f"CSV読み込み ({i+1}/{len(uploaded_files)})")
 
     if not dfs:
         return None
 
     merged = pd.concat(dfs, ignore_index=True)
 
-    # Phase 1: カテゴリ・単品複数判定
     step += 1
-    progress.progress(step / total_steps, text="カテゴリ判定...")
+    progress.progress(step / total_steps, text="カテゴリ判定中...")
     result = classify_all(merged)
 
-    # Phase 2: 商品コード照合 + 高度な複数判定 + JP行/フロンティア行
     step += 1
-    progress.progress(step / total_steps, text="商品コード照合 + 複数判定...")
+    progress.progress(step / total_steps, text="商品コード照合・複数判定中...")
     result = check_quantity_advanced(result)
 
-    # Phase 2: 印影確認判定
     step += 1
-    progress.progress(step / total_steps, text="印影確認判定...")
+    progress.progress(step / total_steps, text="印影確認判定中...")
     result = check_seal_confirmation(result)
 
-    # Phase 2: 注意事項抽出 + 属性解析 + 作成名抽出
     step += 1
-    progress.progress(step / total_steps, text="属性解析 + 作成名抽出...")
+    progress.progress(step / total_steps, text="注意事項・属性解析中...")
     result = extract_cautions(result)
     result = parse_attributes(result)
+
+    step += 1
+    progress.progress(step / total_steps, text="作成名抽出・ジョインティチェック中...")
     result = extract_names(result)
     result = check_jointy(result)
 
@@ -725,48 +751,43 @@ def render_results(df: pd.DataFrame):
     # ダウンロード
     st.header("3. ダウンロード")
 
-    # Excel作業指示書（メイン）
-    st.subheader("作業指示書Excel")
-    if st.button("📊 作業指示書を生成", type="primary", use_container_width=True):
-        with st.spinner("Excel生成中..."):
-            excel_bytes = generate_workbook(df)
-            st.session_state["excel_bytes"] = excel_bytes
-        st.success("生成完了")
-
-    if "excel_bytes" in st.session_state:
+    # Excel作業指示書（1クリックで生成+ダウンロード）
+    if "excel_bytes" not in st.session_state:
+        if st.button("📊 作業指示書Excelを生成してダウンロード", type="primary", use_container_width=True):
+            with st.spinner("Excel作業指示書を生成中..."):
+                st.session_state["excel_bytes"] = generate_workbook(df)
+            st.rerun()
+    else:
         st.download_button(
-            label="📥 作業指示書Excel（全カテゴリ・シート分割済み）",
+            label="📥 作業指示書Excel をダウンロード（推奨）",
             data=st.session_state["excel_bytes"],
             file_name=generate_filename("作業指示書", "xlsx"),
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             use_container_width=True,
+            type="primary",
         )
 
-    st.divider()
-
-    # CSV
-    st.subheader("CSV")
-    dl_col1, dl_col2 = st.columns(2)
-
-    with dl_col1:
-        zip_bytes = to_zip_bytes(categories)
-        st.download_button(
-            label="📥 全カテゴリ一括（ZIP）",
-            data=zip_bytes,
-            file_name=generate_filename("全カテゴリ", "zip"),
-            mime="application/zip",
-            use_container_width=True,
-        )
-
-    with dl_col2:
-        all_csv = to_csv_bytes(df)
-        st.download_button(
-            label="📥 全件CSV",
-            data=all_csv,
-            file_name=generate_filename("全件"),
-            mime="text/csv",
-            use_container_width=True,
-        )
+    # その他のダウンロード
+    with st.expander("その他のダウンロード（CSV / ZIP）"):
+        dl_col1, dl_col2 = st.columns(2)
+        with dl_col1:
+            zip_bytes = to_zip_bytes(categories)
+            st.download_button(
+                label="📥 カテゴリ別ZIP",
+                data=zip_bytes,
+                file_name=generate_filename("全カテゴリ", "zip"),
+                mime="application/zip",
+                use_container_width=True,
+            )
+        with dl_col2:
+            all_csv = to_csv_bytes(df)
+            st.download_button(
+                label="📥 全件CSV",
+                data=all_csv,
+                file_name=generate_filename("全件"),
+                mime="text/csv",
+                use_container_width=True,
+            )
 
     # カテゴリ別タブ
     st.header("4. カテゴリ別データ")
