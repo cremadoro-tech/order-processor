@@ -37,6 +37,10 @@ from config.categories import (
     move_keyword,
 )
 from config.settings_io import load_json, save_json, is_writable
+from processor.transfer_engine import (
+    load_transfer_rules, get_headers_for_sheet, get_sheet_names,
+    apply_transfer_rules, ConsumedLineTracker, _dispatch_rule
+)
 
 st.set_page_config(
     page_title="受注処理システム",
@@ -56,7 +60,7 @@ def main():
     # サイドバー: ページ切り替え
     page = st.sidebar.radio(
         "ページ",
-        ["処理", "使い方", "機能対照表", "パターン管理", "カテゴリ管理", "印鑑設定", "属性設定", "作成名設定", "商品DB", "シートレイアウト"],
+        ["処理", "使い方", "機能対照表", "パターン管理", "カテゴリ管理", "印鑑設定", "属性設定", "作成名設定", "商品DB", "シートレイアウト", "転送ルール"],
         index=0,
     )
 
@@ -71,6 +75,7 @@ def main():
         "作成名設定": render_name_settings_page,
         "商品DB": render_product_db_page,
         "シートレイアウト": render_sheet_layout_page,
+        "転送ルール": render_transfer_rules_page,
     }
     pages[page]()
 
@@ -271,6 +276,9 @@ def render_feature_matrix_page():
         ("ジョインティ文字数×配置チェック", "jointy_checker.py"),
         ("全設定のUI管理（8ページ）", "app.py"),
         ("商品DBのCSVアップロード登録", "app.py"),
+        ("外注マクロ設定シート駆動（39商品×1,219ルール）", "transfer_engine.py"),
+        ("消費型ロジック（ConsumedLineTracker）", "transfer_engine.py"),
+        ("転送ルール管理UI + テスト実行パネル", "app.py"),
     ]
 
     df_impl = pd.DataFrame(implemented, columns=["機能", "実装箇所"])
@@ -283,8 +291,8 @@ def render_feature_matrix_page():
     not_implemented = [
         ("Amazon専用CSV処理", "高",
          "Amazon（GoQ）のCSVフォーマットが異なる。「23:59:59」以降の作成内容抽出等が必要"),
-        ("外注マクロの「設定シート駆動」11パターン転送", "高",
-         "残った行→次のルールが抽出する「消費型」ロジック。設定シートのA〜I列のルール定義が必要"),
+        ("外注マクロの「設定シート駆動」11パターン転送", "済",
+         "39商品×1,219ルールをJSON化し、消費型ロジック（ConsumedLineTracker）を実装済み"),
         ("法人3本セット分割", "中",
          "1行→3シートに分割して統合する法人特有の処理"),
         ("PDF出力・印刷レイアウト", "中",
@@ -1159,6 +1167,126 @@ def render_sheet_layout_page():
             save_json("sheet_layouts.json", data)
             st.success(f"「{new_layout_name}」を追加しました（デフォルトカラムをコピー）")
             st.rerun()
+
+
+def render_transfer_rules_page():
+    """外注マクロ転送ルール管理ページ"""
+    st.header("転送ルール管理")
+    st.caption("外注マクロテンプレートNEWの設定シート（39商品×1,219ルール）")
+
+    rules = load_transfer_rules()
+    if not rules:
+        st.warning("transfer_rules.jsonが見つかりません")
+        return
+
+    # 統計
+    total_rules = sum(len(d.get("columns", [])) for d in rules.values())
+    st.info(f"**{len(rules)}商品** / **{total_rules}ルール** 定義済み")
+
+    # 商品カテゴリ選択
+    sheet_names = list(rules.keys())
+    selected = st.selectbox(
+        "商品カテゴリ",
+        sheet_names,
+        format_func=lambda x: f"{x} ({len(rules[x].get('columns', []))}ルール)",
+    )
+
+    if selected:
+        columns = rules[selected].get("columns", [])
+        headers = get_headers_for_sheet(selected)
+
+        st.subheader(f"{selected} — {len(columns)}ルール / {len(headers)}列")
+        st.write(f"**出力ヘッダー:** {' → '.join(headers)}")
+
+        # ルール一覧テーブル
+        METHOD_LABELS = {1: "連番", 2: "固定文字", 3: "原本から転送", 4: "数式"}
+        TRANSFER_LABELS = {
+            1: "そのまま", 2: "変換", 3: "右側", 4: "分割N番目",
+            10: "不要行除去", 11: "不要行除去", 12: "新行に転送",
+            20: "残り行", 21: "字種判別", 22: "行番号指定",
+        }
+
+        table_data = []
+        for r in columns:
+            table_data.append({
+                "列": r.get("output_col", ""),
+                "ヘッダー": r.get("header", ""),
+                "方法": METHOD_LABELS.get(r.get("method"), str(r.get("method", ""))),
+                "転送": TRANSFER_LABELS.get(r.get("transfer"), str(r.get("transfer", ""))),
+                "ソース列": r.get("source_col", ""),
+                "検索KW": ", ".join(r.get("search_keywords", []))[:50],
+                "変換/固定": str(r.get("transform_value", r.get("fixed_value", "")))[:30],
+            })
+
+        st.dataframe(
+            pd.DataFrame(table_data),
+            use_container_width=True,
+            height=min(len(table_data) * 35 + 40, 500),
+        )
+
+        # テスト実行パネル
+        st.divider()
+        st.subheader("テスト実行")
+        st.caption("「項目・選択肢」のサンプルテキストを入力して、各ルールの適用結果を確認")
+
+        test_text = st.text_area(
+            "テスト用「項目・選択肢」テキスト",
+            height=150,
+            placeholder="ボディカラー=ピンク\n書体=楷書体\nイラスト=ハート\n【選択必須】:了承した。\n田中太郎",
+        )
+
+        if st.button("テスト実行", key="transfer_test") and test_text:
+            test_row = pd.Series({
+                "商品コード": "test", "商品コード2": "test",
+                "商品SKU": "test", "商品名": "テスト商品",
+                "項目・選択肢": test_text,
+                "個数": "1", "備考": "",
+                "GoQ管理番号": "0000-001",
+                "注文者氏名": "テスト太郎",
+                "ひとことメモ": selected,
+            })
+
+            # ルール適用
+            result = apply_transfer_rules(test_row, selected, row_number=1)
+
+            # 結果表示
+            st.subheader("適用結果")
+            result_data = []
+            for h in headers:
+                v = result.get(h, "")
+                result_data.append({"列": h, "値": v})
+            st.dataframe(pd.DataFrame(result_data), use_container_width=True)
+
+            # 消費プロセスの可視化
+            st.subheader("消費プロセス")
+            tracker = ConsumedLineTracker(test_text)
+            step_data = []
+            for rule in columns:
+                header = rule.get("header", "")
+                method = rule.get("method")
+                transfer = rule.get("transfer")
+                before = len(tracker.get_remaining_lines())
+                value = _dispatch_rule(rule, test_row, tracker, 1)
+                after = len(tracker.get_remaining_lines())
+                consumed = before - after
+                if value or consumed > 0:
+                    step_data.append({
+                        "列": header,
+                        "方法": f"{method}×{transfer}" if transfer else str(method),
+                        "結果": str(value)[:50] if value else "(空)",
+                        "消費行数": consumed,
+                        "残り行数": after,
+                    })
+
+            st.dataframe(pd.DataFrame(step_data), use_container_width=True)
+
+            remaining = tracker.get_remaining_lines()
+            if remaining:
+                st.write(f"**最終残り行** ({len(remaining)}行):")
+                for line in remaining:
+                    st.code(line)
+            else:
+                st.success("全行が処理されました")
 
 
 # === 共通UIコンポーネント ===

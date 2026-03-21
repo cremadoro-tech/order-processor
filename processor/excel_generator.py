@@ -15,6 +15,9 @@ from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
 
 from config.settings_io import load_json
+from processor.transfer_engine import (
+    has_transfer_rules, apply_transfer_rules, get_headers_for_sheet
+)
 
 LAYOUTS_FILE = "sheet_layouts.json"
 
@@ -85,10 +88,20 @@ def _write_sheet(
     summary_data: list,
 ):
     """DataFrameをシートに書き込む。max_rows超過時はPart分割。"""
-    columns = layout.get("columns", [])
-    if not columns:
-        # レイアウト未定義の場合はデフォルト
-        columns = load_json(LAYOUTS_FILE).get("layouts", {}).get("_default", {}).get("columns", [])
+    # カテゴリ名を抽出（"ジョインティ_単品" → "ジョインティ"）
+    category_name = base_name.rsplit("_", 1)[0] if "_" in base_name else base_name
+
+    # 転送ルールが存在するカテゴリか判定
+    use_transfer_engine = has_transfer_rules(category_name)
+
+    if use_transfer_engine:
+        # 転送エンジンのヘッダーからカラム定義を生成
+        headers = get_headers_for_sheet(category_name)
+        columns = [{"header": h, "source": h} for h in headers]
+    else:
+        columns = layout.get("columns", [])
+        if not columns:
+            columns = load_json(LAYOUTS_FILE).get("layouts", {}).get("_default", {}).get("columns", [])
 
     total_rows = len(df)
     if total_rows == 0:
@@ -131,8 +144,16 @@ def _write_sheet(
         for row_idx, (_, data_row) in enumerate(part_df.iterrows(), 2):
             is_frontier = str(data_row.get("配送区分", "")) == "フロンティア行"
 
+            if use_transfer_engine:
+                # 転送エンジンで全列の値を一括生成
+                transfer_result = apply_transfer_rules(data_row, category_name, row_number=row_idx - 1)
+
             for col_idx, col_def in enumerate(columns, 1):
-                value = _extract_value(data_row, col_def, row_idx - 1, barcode_pre, barcode_suf)
+                if use_transfer_engine:
+                    value = transfer_result.get(col_def["header"], "")
+                else:
+                    value = _extract_value(data_row, col_def, row_idx - 1, barcode_pre, barcode_suf)
+
                 cell = ws.cell(row=row_idx, column=col_idx, value=value)
                 cell.font = DATA_FONT
                 cell.border = THIN_BORDER
