@@ -786,12 +786,18 @@ def render_seal_settings_page():
     data = load_json("seal_settings.json")
 
     # 各キーワードリストを編集
+    descriptions = {
+        "inei_keywords_options": "「項目・選択肢」列にこのキーワードが含まれていたら → **印影確認**に分類",
+        "inei_keywords_remarks": "「備考」列にこのキーワードが含まれていたら → **印影確認**に分類",
+        "inei_keywords_design_remarks": "「備考」列にこのキーワードが含まれていたら → **デザイン確認（印影確認）**に分類",
+    }
     for key, label in [
         ("inei_keywords_options", "印影確認キーワード（項目・選択肢）"),
         ("inei_keywords_remarks", "印影確認キーワード（備考欄）"),
         ("inei_keywords_design_remarks", "デザイン確認キーワード（備考欄）"),
     ]:
         st.subheader(label)
+        st.caption(descriptions[key])
         items = data.get(key, [])
         _render_string_list_editor(data, key, items, f"seal_{key}")
 
