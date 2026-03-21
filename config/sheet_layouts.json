@@ -120,6 +120,27 @@
         {"header": "バーコード", "source": "GoQ管理番号"},
         {"header": "単品", "source": "単品複数"}
       ]
+    },
+    "法人3本": {
+      "sheet_prefix": "法人3本",
+      "houjin3_split": true,
+      "columns": [
+        {"header": "No", "source": "No"},
+        {"header": "印鑑種類", "source": "印鑑種類"},
+        {"header": "印材", "source": "印材"},
+        {"header": "形状", "source": "形状"},
+        {"header": "サイズ", "source": "サイズ"},
+        {"header": "セットタイプ", "source": "セットタイプ"},
+        {"header": "書体", "source": "書体"},
+        {"header": "書体(フォント名)", "source": "書体(フォント名)"},
+        {"header": "作成名", "source": "作成名"},
+        {"header": "個数", "source": "個数"},
+        {"header": "注文者氏名", "source": "注文者氏名"},
+        {"header": "GoQ管理番号", "source": "GoQ管理番号"},
+        {"header": "備考", "source": "備考"},
+        {"header": "注意事項", "source": "注意事項"},
+        {"header": "バーコード", "source": "GoQ管理番号"}
+      ]
     }
   },
   "max_rows_per_sheet": 100,

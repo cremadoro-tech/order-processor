@@ -18,6 +18,7 @@ from config.settings_io import load_json
 from processor.transfer_engine import (
     has_transfer_rules, apply_transfer_rules, get_headers_for_sheet
 )
+from processor.houjin3_splitter import split_houjin3
 
 LAYOUTS_FILE = "sheet_layouts.json"
 
@@ -126,8 +127,19 @@ def _write_sheet(
     # カテゴリ名を抽出（"ジョインティ_単品" → "ジョインティ"）
     category_name = base_name.rsplit("_", 1)[0] if "_" in base_name else base_name
 
+    # 法人3本セット分割: 1行→3行に展開
+    is_houjin3 = layout.get("houjin3_split", False)
+    if is_houjin3:
+        expanded_rows = []
+        for _, row in df.iterrows():
+            expanded_rows.extend(split_houjin3(row))
+        if expanded_rows:
+            df = pd.DataFrame(expanded_rows)
+        else:
+            return
+
     # 転送ルールが存在するカテゴリか判定
-    use_transfer_engine = has_transfer_rules(category_name)
+    use_transfer_engine = has_transfer_rules(category_name) and not is_houjin3
 
     if use_transfer_engine:
         # 転送エンジンのヘッダーからカラム定義を生成
