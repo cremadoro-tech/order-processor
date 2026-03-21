@@ -131,7 +131,7 @@ def generate_workbook(df: pd.DataFrame) -> bytes:
                         continue  # この管理番号は既に展開済み→スキップ
                     expanded_goqs.add(goq)
                 expanded_rows.extend(result_rows)
-            amazon_group = pd.DataFrame(expanded_rows).reset_index(drop=True)
+            amazon_group = pd.DataFrame(expanded_rows).fillna("").reset_index(drop=True)
 
             amazon_sheet = amazon_sheet_names.get(sheet_base, sheet_base)
             amazon_layout = amazon_layouts.get(sheet_base, amazon_layouts.get("_default", {}))
@@ -178,7 +178,9 @@ def _write_sheet(
             return
 
     # 転送ルールが存在するカテゴリか判定
-    use_transfer_engine = has_transfer_rules(category_name) and not is_houjin3
+    # Amazon専用レイアウト（amazon_source付き）の場合は転送エンジンを使わない
+    has_amazon_layout = any("amazon_source" in col for col in layout.get("columns", []))
+    use_transfer_engine = has_transfer_rules(category_name) and not is_houjin3 and not has_amazon_layout
 
     if use_transfer_engine:
         # 転送エンジンのヘッダーからカラム定義を生成
@@ -229,7 +231,8 @@ def _write_sheet(
         # データ行
         for row_idx, (_, data_row) in enumerate(part_df.iterrows(), 2):
             is_frontier = str(data_row.get("配送区分", "")) == "フロンティア行"
-            is_amazon = str(data_row.get("ソース", "")) == "amazon"
+            _source = data_row.get("ソース", "")
+            is_amazon = str(_source) == "amazon" if _source is not None and str(_source) != "nan" else has_amazon_layout
 
             if use_transfer_engine and not is_amazon:
                 # 楽天用: 転送エンジンで全列の値を一括生成
@@ -237,12 +240,14 @@ def _write_sheet(
 
             if is_amazon:
                 # Amazon用: 専用抽出器で属性を取得
-                amazon_attrs = extract_amazon_attributes(
-                    str(data_row.get("項目・選択肢", "")),
-                    str(data_row.get("商品名", "")),
-                )
-                product_cat = str(data_row.get("製品カテゴリ", ""))
-                short_name = _shorten_product_name(str(data_row.get("商品名", "")), product_cat)
+                # NaN対策: pandasのNaNをstr()すると"nan"になるため空文字に変換
+                _opts = data_row.get("項目・選択肢", "")
+                _opts = "" if pd.isna(_opts) else str(_opts)
+                _pname = data_row.get("商品名", "")
+                _pname = "" if pd.isna(_pname) else str(_pname)
+                amazon_attrs = extract_amazon_attributes(_opts, _pname)
+                product_cat = str(data_row.get("製品カテゴリ", "") or "")
+                short_name = _shorten_product_name(_pname, product_cat)
 
             for col_idx, col_def in enumerate(columns, 1):
                 header = col_def["header"]
@@ -413,14 +418,17 @@ def _extract_amazon_value(row, header, amazon_attrs, short_name, row_number, bar
     if src in ("書体", "カラー", "作成名", "サイズ", "配置"):
         return amazon_attrs.get(src, "")
 
+    def _safe_str(val):
+        return "" if val is None or (isinstance(val, float) and pd.isna(val)) else str(val)
+
     # 元データから直接取得
     if src == "個数":
-        val = str(row.get("個数", "1"))
+        val = _safe_str(row.get("個数", "1")) or "1"
         return val.replace(".0", "") if val.endswith(".0") else val
     if src == "GoQ管理番号":
-        return str(row.get("GoQ管理番号", ""))
+        return _safe_str(row.get("GoQ管理番号", ""))
     if src == "ひとことメモ":
-        return str(row.get("ひとことメモ", ""))
+        return _safe_str(row.get("ひとことメモ", ""))
     if src == "単品複数":
         # AmazonJP / フロンティア / フロンティア+ の形式にする
         qty = str(row.get("単品複数", ""))
@@ -442,7 +450,8 @@ def _extract_amazon_value(row, header, amazon_attrs, short_name, row_number, bar
 
     # フォールバック
     if src in row.index:
-        return str(row.get(src, ""))
+        val = row.get(src, "")
+        return "" if pd.isna(val) else str(val)
 
     return ""
 
