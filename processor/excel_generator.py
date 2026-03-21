@@ -19,6 +19,7 @@ from processor.transfer_engine import (
     has_transfer_rules, apply_transfer_rules, get_headers_for_sheet
 )
 from processor.houjin3_splitter import split_houjin3
+from processor.amazon_extractor import extract_amazon_attributes, _shorten_product_name
 
 LAYOUTS_FILE = "sheet_layouts.json"
 
@@ -190,14 +191,32 @@ def _write_sheet(
         # データ行
         for row_idx, (_, data_row) in enumerate(part_df.iterrows(), 2):
             is_frontier = str(data_row.get("配送区分", "")) == "フロンティア行"
+            is_amazon = str(data_row.get("ソース", "")) == "amazon"
 
-            if use_transfer_engine:
-                # 転送エンジンで全列の値を一括生成
+            if use_transfer_engine and not is_amazon:
+                # 楽天用: 転送エンジンで全列の値を一括生成
                 transfer_result = apply_transfer_rules(data_row, category_name, row_number=row_idx - 1)
 
+            if is_amazon:
+                # Amazon用: 専用抽出器で属性を取得
+                amazon_attrs = extract_amazon_attributes(
+                    str(data_row.get("項目・選択肢", "")),
+                    str(data_row.get("商品名", "")),
+                )
+                product_cat = str(data_row.get("製品カテゴリ", ""))
+                short_name = _shorten_product_name(str(data_row.get("商品名", "")), product_cat)
+
             for col_idx, col_def in enumerate(columns, 1):
-                if use_transfer_engine:
-                    value = transfer_result.get(col_def["header"], "")
+                header = col_def["header"]
+
+                if is_amazon:
+                    # Amazon専用の値マッピング
+                    value = _extract_amazon_value(
+                        data_row, header, amazon_attrs, short_name,
+                        row_idx - 1, barcode_pre, barcode_suf
+                    )
+                elif use_transfer_engine:
+                    value = transfer_result.get(header, "")
                 else:
                     value = _extract_value(data_row, col_def, row_idx - 1, barcode_pre, barcode_suf)
 
@@ -300,6 +319,60 @@ def _extract_value(row: pd.Series, col_def: dict, row_number: int, barcode_pre: 
         return f"{barcode_pre}{raw}{barcode_suf}"
 
     return raw
+
+
+def _extract_amazon_value(row, header, amazon_attrs, short_name, row_number, barcode_pre, barcode_suf):
+    """Amazon用の値取得。amazon_extractorの結果とrow情報を組み合わせる。"""
+    # 番号
+    if header in ("番号", "No"):
+        return row_number
+
+    # 商品名（短縮版）
+    if header == "商品名":
+        return short_name
+
+    # Amazon抽出結果から取得
+    if header in ("書体",):
+        return amazon_attrs.get("書体", "")
+    if header in ("カラー",):
+        return amazon_attrs.get("カラー", "")
+    if header in ("作成名",):
+        return amazon_attrs.get("作成名", "")
+    if header in ("サイズ",):
+        return amazon_attrs.get("サイズ", "")
+    if header in ("配置", "文字の配置"):
+        return amazon_attrs.get("配置", "")
+
+    # 元データから直接取得
+    if header == "個数":
+        val = str(row.get("個数", "1"))
+        return val.replace(".0", "") if val.endswith(".0") else val
+    if header == "管理番号":
+        return str(row.get("GoQ管理番号", ""))
+    if header in ("バーコード", "番号") and header == "バーコード":
+        goq = str(row.get("GoQ管理番号", ""))
+        return f"{barcode_pre}{goq}{barcode_suf}" if goq else ""
+    if header == "ひとこと":
+        return str(row.get("ひとことメモ", ""))
+    if header == "単品":
+        return str(row.get("単品複数", ""))
+    if header in ("備考", "備考欄"):
+        return ""  # Amazon備考は作成内容抽出に使ったので空
+    if header == "注文者氏名":
+        return str(row.get("注文者氏名", ""))
+    if header == "セット":
+        name = str(row.get("商品名", ""))
+        if "2点セット" in name:
+            return "2点セット"
+        if "3点セット" in name:
+            return "3点セット"
+        return ""
+
+    # フォールバック: 列名と同じデータ列があればそれを使う
+    if header in row.index:
+        return str(row.get(header, ""))
+
+    return ""
 
 
 def _auto_column_width(ws, num_columns: int):
