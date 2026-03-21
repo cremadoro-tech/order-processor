@@ -66,6 +66,11 @@ def _extract_font(text):
     - 書体　　楷書体
     - 字体:丸ゴシック
     """
+    # 特殊パターン: 【書体：名前】 【刻印：書体名】 の逆転パターン
+    match_reverse = re.search(r"【書体[：:]([^】]+)】.*【刻印[：:]([^】]+)】", text)
+    if match_reverse:
+        return match_reverse.group(2).strip()  # 刻印の値が本当の書体
+
     # パターン1: 【書体：○○】 or 書体：【○○】
     match = re.search(r"(?:名入れ)?書体[：:]\s*【([^】]+)】", text)
     if match:
@@ -86,7 +91,12 @@ def _extract_font(text):
     if match:
         return match.group(1).strip()
 
-    # パターン5: 【楷書体】等の書体名が直接ある
+    # パターン5: 【刻印：古印体】
+    match = re.search(r"【刻印[：:]([^】]+)】", text)
+    if match:
+        return match.group(1).strip()
+
+    # パターン6: 書体名が直接テキスト内にある（フリーテキスト対応）
     font_names = ["楷書体", "明朝体", "古印体", "行書体", "隷書体", "てん書体",
                   "印相体", "丸ゴシック体", "丸ゴシック", "ゴシック体"]
     for font in font_names:
@@ -133,9 +143,55 @@ def _extract_creation_name(text):
     match = re.search(r"文字[：:]\s*【([^】]+)】", text)
     if match:
         name = match.group(1).strip()
-        # 全角スペースを除去して連結（「木　部　忠　仁」→「木部忠仁」）
         name = re.sub(r"[\s　]+", "", name)
         return name
+
+    # パターン5: 【彫刻名】○○ （コロンなし括弧）
+    match = re.search(r"【(?:彫刻名|名前|作成名)】\s*([^\s　【\n]+)", text)
+    if match:
+        name = match.group(1).strip()
+        name = re.split(r"(?:書体|字体|山が|です)", name)[0].strip()
+        if name:
+            return name
+
+    # パターン6: 【書体：○○】 【刻印：△△】の場合、書体が名前、刻印が書体
+    match = re.search(r"【書体[：:]([^】]+)】.*【刻印[：:]([^】]+)】", text)
+    if match:
+        # この場合「書体」の値が実は名前
+        return match.group(1).strip()
+
+    # パターン7: フリーテキスト（名前 書体 注文者名）
+    # 書体名を見つけて、その前の部分を作成名とする
+    font_names = ["楷書体", "明朝体", "古印体", "行書体", "隷書体", "てん書体",
+                  "印相体", "丸ゴシック体", "丸ゴシック", "ゴシック体"]
+    for font in font_names:
+        if font in text:
+            idx = text.find(font)
+            before = text[:idx].strip()
+            if before:
+                parts = re.split(r"[\s　]+", before)
+                name = parts[-1].strip()
+                if name and len(name) <= 10:
+                    return name
+            after = text[idx + len(font):].strip()
+            if after:
+                parts = re.split(r"[\s　]+", after)
+                name = parts[0].strip()
+                if name and len(name) <= 10 and not any(c.isascii() and c.isalpha() for c in name):
+                    return name
+            break
+
+    # パターン8: 純粋フリーテキスト（名前 注文者名）書体キーワードなし
+    # 最初のスペース区切りの単語を作成名とする
+    # 例: "落合 落合" → "落合", "山下 小澤三津生" → "山下"
+    first_line = text.split("\n")[0].strip()
+    if first_line:
+        parts = re.split(r"[\s　]+", first_line)
+        if len(parts) >= 1:
+            name = parts[0].strip()
+            # 日本語の名前っぽいか（1〜5文字の漢字/ひらがな）
+            if name and 1 <= len(name) <= 8 and re.search(r"[\u3040-\u309F\u4E00-\u9FFF]", name):
+                return name
 
     return ""
 
