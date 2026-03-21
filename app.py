@@ -716,6 +716,24 @@ def render_categories_page():
 
     # キーワード一覧（編集・並び替え・削除）
     st.subheader("登録済みキーワード一覧（上が優先）")
+    st.caption("「ひとことメモ」に検索キーワードが含まれていたら、その行を分類先カテゴリに振り分けます。")
+
+    # ヘッダー行
+    header_cols = st.columns([1, 3, 3, 1, 1, 1, 1])
+    with header_cols[0]:
+        st.markdown("**#**")
+    with header_cols[1]:
+        st.markdown("**検索キーワード**")
+    with header_cols[2]:
+        st.markdown("**→ 分類先カテゴリ**")
+    with header_cols[3]:
+        st.markdown("**保存**")
+    with header_cols[4]:
+        st.markdown("**↑**")
+    with header_cols[5]:
+        st.markdown("**↓**")
+    with header_cols[6]:
+        st.markdown("**削除**")
 
     cat_changed = False
     for i, item in enumerate(keywords):
