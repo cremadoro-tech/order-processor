@@ -415,8 +415,20 @@ def render_processing_page():
     )
 
     if not uploaded_files:
+        # ファイルがなくなったら前の結果をクリア
+        if "result_df" in st.session_state:
+            del st.session_state["result_df"]
+        if "last_files" in st.session_state:
+            del st.session_state["last_files"]
         st.info("CSVファイルをドラッグ&ドロップ、またはクリックして選択してください。")
         return
+
+    # ファイルが変わったら前の結果をクリア
+    current_files = tuple(sorted(f"{f.name}_{f.size}" for f in uploaded_files))
+    if st.session_state.get("last_files") != current_files:
+        if "result_df" in st.session_state:
+            del st.session_state["result_df"]
+        st.session_state["last_files"] = current_files
 
     # ファイル情報表示
     for f in uploaded_files:
