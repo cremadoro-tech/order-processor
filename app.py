@@ -797,6 +797,19 @@ def render_seal_settings_page():
 
     # 旧字パターン
     st.subheader("旧字×書体パターン（印影確認）")
+    st.caption("備考欄にこの「旧字」が含まれ、かつ「書体」が一致する場合、印影確認が必要と判定します。")
+
+    # ヘッダー行
+    h_cols = st.columns([3, 3, 1, 1])
+    with h_cols[0]:
+        st.markdown("**旧字（文字）**")
+    with h_cols[1]:
+        st.markdown("**書体（一致条件）**")
+    with h_cols[2]:
+        st.markdown("**保存**")
+    with h_cols[3]:
+        st.markdown("**削除**")
+
     patterns = data.get("kyuji_inei_patterns", [])
     for i, p in enumerate(patterns):
         cols = st.columns([3, 3, 1, 1])
