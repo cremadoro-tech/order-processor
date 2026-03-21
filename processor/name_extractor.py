@@ -46,6 +46,7 @@ def _extract_name(text: str, settings: dict) -> str:
     name_keywords = settings.get("name_keywords", [])
     stop_keywords = settings.get("name_stop_keywords", [])
 
+    # パターン1: キーワード + 停止語の先読み（標準パターン）
     for keyword in name_keywords:
         stop_pattern = "|".join(re.escape(k) for k in stop_keywords)
         pattern = (
@@ -61,9 +62,65 @@ def _extract_name(text: str, settings: dict) -> str:
             if name and len(name) <= 30:
                 return name
 
+    # パターン2: 「作成名=値」の単純抽出
     match = re.search(r"作成名[=＝：:]\s*(.+?)(?:\n|$)", text)
     if match:
         name = match.group(1).strip()
+        if name and len(name) <= 30:
+            return name
+
+    # パターン3: アシール氏名印用（フルネーム対応・先読み付き高度パターン）
+    # VBScript.RegExpの (作成名|彫刻名|名前|作品名) + 先読みで停止
+    name = _extract_name_achir(text)
+    if name:
+        return name
+
+    return ""
+
+
+def _extract_name_achir(text: str) -> str:
+    """アシール向け高度な作成名抽出（VBScript.RegExp相当）
+
+    元マクロの2つの正規表現パターンを再現:
+    1. オスカジョインティ用: キーワード直後の非空白を抽出
+    2. 氏名印用: フルネーム（スペース含む）対応、先読みで停止
+    """
+    if not text:
+        return ""
+
+    # 改行を含むセルはスキップ（元マクロと同じ）
+    if "\n" in text.strip():
+        return ""
+
+    # パターン1: 氏名印用（フルネーム対応 = スペース区切りも許容、先読みで停止）
+    # 「書体」「文字」「配置」「ヨコ」「タテ」等が来たら停止
+    # ※先にフルネームを試す（単語パターンより優先）
+    match = re.search(
+        r"(?:作成名|彫刻名|名前|作品名|Creation\s*Name)"
+        r"[\s　：:\[\]【】=＝]*"
+        r"([^\s　【】\[\]=＝]+(?:[\s　]+[^\s　【】\[\]=＝]+)*?)"
+        r"(?=[\s　]*(?:【|\[|書体|文字|配置|ヨコ|タテ|横書き|縦書き|よろしく|で作成|$))",
+        text,
+    )
+    if match:
+        name = match.group(1).strip()
+        # 全角スペースの正規化 + 連続スペースの集約
+        name = re.sub(r"[　]+", " ", name)
+        name = re.sub(r" {2,}", " ", name)
+        name = re.sub(r"[】\]]+$", "", name)
+        if name and len(name) <= 30:
+            return name
+
+    # パターン2: オスカジョインティ用（単語1つ、フォールバック）
+    match = re.search(
+        r"(?:作成名|彫刻名|名前|Creation\s*Name)"
+        r"[\s　：:\[\]【】=＝]*"
+        r"([^\s　\r\n\]】=＝]+)",
+        text,
+    )
+    if match:
+        name = match.group(1).strip()
+        name = re.sub(r"[】\]]+$", "", name)
         if name and len(name) <= 30:
             return name
 
