@@ -134,9 +134,10 @@ def render_manual_page():
 
 1. GoQ System にログイン
 2. 受注管理 → 受注データCSV出力
-3. 以下の2ファイルをダウンロード:
+3. 以下のファイルをダウンロード（該当するものすべて）:
    - **楽天分**: 楽天の注文データ（例: `楽天分元データ.csv`）
    - **楽天Amazon以外**: Qoo10等の注文データ（例: `楽天　Amazon以外元データ.csv`）
+   - **Amazon**: Amazon GoQの注文データ
 4. ダウンロード先: PCの「ダウンロード」フォルダ
 
 **STEP 1: アプリにアップロード**
@@ -191,11 +192,12 @@ CSVアップロード → 自動処理 → 結果確認 → ダウンロード
     st.markdown("""
 - サイドバーの「処理」ページを選択
 - 「CSVアップロード」エリアにファイルをドラッグ＆ドロップ（複数同時OK）
-- **対応フォーマット:**
+- **対応フォーマット（3種類）:**
   - 楽天分元データ.csv（楽天RMSエクスポート）
   - 楽天Amazon以外元データ.csv（Qoo10等のGoQエクスポート）
+  - Amazon GoQ CSV（Amazon GoQエクスポート）
 - Shift-JIS / UTF-8 どちらも自動判定
-- 楽天 / 楽天Amazon以外もヘッダー名で自動判定
+- 楽天 / 楽天Amazon以外 / Amazon はヘッダー名で自動判定
 """)
 
     st.divider()
@@ -405,6 +407,13 @@ def render_feature_matrix_page():
         ("処理履歴（直近5件、ダウンロードリンク付き）", "app.py"),
         ("ファイル変更時の結果自動クリア", "app.py"),
         ("日次運用フロー手順書", "app.py（使い方ページ）"),
+        ("Amazon CSV自動判定・読み込み", "reader.py + normalizer.py"),
+        ("Amazon備考→作成内容抽出（23:59:59以降）", "normalizer.py"),
+        ("Amazon属性抽出（書体・作成名・カラー・サイズ）", "amazon_extractor.py"),
+        ("Amazon専用シートレイアウト（マクロ③一致）", "sheet_layouts.json"),
+        ("Amazon複数名入れ行展開", "amazon_extractor.py"),
+        ("Amazon配送分類（単品/単品＋/複数）", "excel_generator.py"),
+        ("Amazon商品DB（943件、100%ヒット）", "amazon_db.json"),
     ]
 
     df_impl = pd.DataFrame(implemented, columns=["機能", "実装箇所"])
@@ -415,8 +424,6 @@ def render_feature_matrix_page():
     st.divider()
     st.subheader("未実装機能")
     not_implemented = [
-        ("Amazon専用CSV処理", "高",
-         "Amazon（GoQ）のCSVフォーマットが異なる。「23:59:59」以降の作成内容抽出等が必要。AmazonサンプルCSVの準備待ち"),
         ("処理履歴の永続化", "中",
          "現在の履歴はブラウザセッション中のみ保持（タブを閉じると消える）。Google Sheets記録 or Railway移行で永続化可能"),
         ("設定変更の永続化", "中",
@@ -445,19 +452,18 @@ def render_feature_matrix_page():
 
     st.divider()
     st.subheader("準備物の不足リスト")
-    missing = [
-        ("Amazon（GoQ）のサンプルCSV", "高",
-         "Amazon専用処理の実装・テストに必要",
-         "GoQシステムからエクスポートして用意"),
-    ]
+    missing = []
 
-    df_missing = pd.DataFrame(missing, columns=["不足物", "重要度", "用途", "対応方法"])
+    df_missing = pd.DataFrame(missing, columns=["不足物", "重要度", "用途", "対応方法"]) if missing else None
     df_missing.index = range(1, len(df_missing) + 1)
 
-    st.dataframe(
-        df_missing.style.apply(highlight_priority, axis=1),
-        use_container_width=True,
-    )
+    if df_missing is not None and len(df_missing) > 0:
+        st.dataframe(
+            df_missing.style.apply(highlight_priority, axis=1),
+            use_container_width=True,
+        )
+    else:
+        st.success("不足している準備物はありません。全て対応済みです。")
 
     st.divider()
     st.subheader("全体フロー図")
@@ -466,7 +472,7 @@ def render_feature_matrix_page():
 【入口】
   楽天分元データ.csv          ← 楽天RMSからエクスポート
   楽天Amazon以外元データ.csv  ← Qoo10等のGoQエクスポート
-  (Amazon GoQ CSV)            ← 未対応
+  Amazon GoQ CSV              ← Amazon GoQからエクスポート
             │
             ▼
 【STEP 1: 読み込み・正規化】
@@ -496,12 +502,11 @@ def render_feature_matrix_page():
 ```
 """)
 
-    st.subheader("次のステップ（優先順位）")
+    st.subheader("次のステップ")
     st.markdown("""
 ```
-1. 実運用テスト → 実際のCSVで元マクロ出力と比較し差分を修正
-2. Amazon CSV対応 → AmazonサンプルCSVを用意して実装
-3. Railway移行（任意）→ UIからの設定変更を永続化（月~$5）
+1. 実運用テスト → 毎日のCSVで処理し、不足パターンがあれば追加
+2. Railway移行（任意）→ UIからの設定変更・履歴を永続化（月~$5）
 ```
 """)
 
