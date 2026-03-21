@@ -219,6 +219,8 @@ CSVアップロード → 自動処理 → 結果確認 → ダウンロード
 | 書体変換 | 楷書体→泰楷書太 等のフォント名に変換 |
 | 作成名抽出 | 正規表現で名前を抽出し、ひらがな/漢字/ローマ字を判別 |
 | ジョインティチェック | 文字数×配置の整合性を警告 |
+| **Amazon専用処理** | 備考から作成内容抽出、書体・作成名・カラー・配置を自動解析 |
+| 複数名行展開 | 1注文で複数名入れがある場合、名前ごとに行を分割 |
 """)
 
     st.divider()
@@ -297,7 +299,7 @@ CSVアップロード → 自動処理 → 結果確認 → ダウンロード
 | `categories.json` | カテゴリキーワード14種 |
 | `product_db.json` | 楽天印鑑DB（11,495件） |
 | `outsource_db.json` | 外注品DB（3,042件） |
-| `amazon_db.json` | Amazon DB（297件） |
+| `amazon_db.json` | Amazon DB（943件） |
 | `seal_settings.json` | 印影確認設定 |
 | `attribute_settings.json` | 属性・書体・文字の向き設定 |
 | `name_settings.json` | 作成名設定 |
@@ -371,7 +373,7 @@ def render_feature_matrix_page():
         ("不要文字列削除（134パターン）", "cleanser.py"),
         ("改行記号変換（##/###/●●●/<br>）", "改行変換マップ"),
         ("連続改行・先頭末尾空白の除去", "cleanser.py"),
-        ("商品コード照合 100%ヒット（14,834件DB）", "product_lookup.py"),
+        ("商品コード照合 100%ヒット（15,480件DB）", "product_lookup.py"),
         ("印影確認キーワード検出", "seal_checker.py"),
         ("印影確認の同一注文番号への波及", "_propagate_by_order()"),
         ("販売課判定", "seal_checker.py"),
@@ -401,7 +403,7 @@ def render_feature_matrix_page():
         ("外注マクロ設定シート駆動（39商品×1,219ルール）", "transfer_engine.py"),
         ("消費型ロジック（ConsumedLineTracker）", "transfer_engine.py"),
         ("ペンペン/シール/ジェットストリーム振り分け表統合", "outsource_db.json"),
-        ("全設定のUI管理（11ページ）", "app.py"),
+        ("全設定のUI管理（5ページ・7タブ統合）", "app.py"),
         ("商品DBのCSVアップロード登録", "app.py"),
         ("転送ルール管理UI + テスト実行パネル", "app.py"),
         ("処理履歴（直近5件、ダウンロードリンク付き）", "app.py"),
@@ -414,6 +416,12 @@ def render_feature_matrix_page():
         ("Amazon複数名入れ行展開", "amazon_extractor.py"),
         ("Amazon配送分類（単品/単品＋/複数）", "excel_generator.py"),
         ("Amazon商品DB（943件、100%ヒット）", "amazon_db.json"),
+        ("Amazonのし書体番号付き対応（004.有澤楷書体等）", "amazon_extractor.py"),
+        ("Amazonおむつ固定値WES対応", "sheet_layouts.json"),
+        ("Amazon分割印ヘッダー2列備考対応", "sheet_layouts.json"),
+        ("Amazonのべ台デフォルト配置ヨコ", "amazon_extractor.py"),
+        ("Amazon NaN対策（fillna+is_amazon判定強化）", "excel_generator.py"),
+        ("アシール正規表現抽出（フルネーム対応・先読み付き）", "name_extractor.py"),
     ]
 
     df_impl = pd.DataFrame(implemented, columns=["機能", "実装箇所"])
@@ -476,25 +484,28 @@ def render_feature_matrix_page():
             │
             ▼
 【STEP 1: 読み込み・正規化】
-  ファイル読み込み → 文字コード自動判定 → プラットフォーム判定 → カラム統一
+  ファイル読み込み → 文字コード自動判定 → プラットフォーム判定(楽天/Amazon/Qoo10)
+  → カラム統一 → Amazon: 備考から「23:59:59」以降の作成内容を抽出
             │
             ▼
 【STEP 2: クレンジング】
-  不要文字列136種削除 → 改行記号変換 → 連続改行圧縮 → 空白除去
+  不要文字列134種削除 → 改行記号変換 → 連続改行圧縮 → 空白除去
             │
             ▼
 【STEP 3: 分類・判定】
-  カテゴリ判定（14種） → 商品コード照合 → 単品/複数判定
+  カテゴリ判定（14種） → 商品コード照合(15,480件DB→100%) → 単品/複数判定
   → 印影確認判定 → 販売課判定 → JP行/フロンティア行
             │
             ▼
 【STEP 4: 属性抽出】
   注意事項抽出 → 印材/サイズ/書体/向き解析 → 書体変換
-  → 作成名抽出 → 文字種判別 → ジョインティ整合性チェック
+  → 作成名抽出(アシール正規表現対応) → 文字種判別 → ジョインティ整合性チェック
             │
             ▼
 【STEP 5: 出力】
-  全件CSV / カテゴリ別ZIP / Excel作業指示書（カテゴリ×単品複数シート分割）
+  楽天: カテゴリ×単品複数シート分割 + 転送エンジン(39商品)
+  Amazon: 専用レイアウト(マクロ③一致) + 複数名行展開 + 配送分類
+  → 全件CSV / カテゴリ別ZIP / Excel作業指示書
             │
             ▼
 【出口】
