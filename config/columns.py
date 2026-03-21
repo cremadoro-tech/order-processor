@@ -25,3 +25,9 @@ RAKUTEN_RENAME = {
 NON_RAKUTEN_RENAME = {
     "GoQ管理番号(カスタム)": "GoQ管理番号",
 }
+
+# Amazon: 列名が異なる（送付先氏名→注文者氏名、商品コード列なし）
+AMAZON_RENAME = {
+    "送付先氏名": "注文者氏名",
+    "GoQ管理番号(カスタム)": "GoQ管理番号",
+}

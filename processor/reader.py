@@ -47,6 +47,10 @@ def detect_platform(df: pd.DataFrame) -> str:
     if len(columns) >= 2 and columns[1] == "商品コード":
         return "non_rakuten"
 
+    # Amazon: 「注文時間」列と「送付先氏名」列がある
+    if "注文時間" in columns and "送付先氏名" in columns:
+        return "amazon"
+
     # GoQ管理番号のヘッダー名でも判定可能
     for col in columns:
         if "三桁ハイフン区切り" in col:

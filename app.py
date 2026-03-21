@@ -512,7 +512,7 @@ def render_processing_page():
     # CSV アップロード
     st.header("1. CSVアップロード")
     uploaded_files = st.file_uploader(
-        "楽天分 / 楽天Amazon以外のCSVをアップロード",
+        "楽天分 / 楽天Amazon以外 / Amazon のCSVをアップロード",
         type=["csv"],
         accept_multiple_files=True,
         help="複数ファイル同時アップロード可。Shift-JIS / UTF-8 自動判定。",
@@ -1783,6 +1783,7 @@ def _platform_label(platform: str) -> str:
     labels = {
         "rakuten": "楽天分",
         "non_rakuten": "楽天Amazon以外",
+        "amazon": "Amazon",
         "unknown": "不明",
     }
     return labels.get(platform, platform)
