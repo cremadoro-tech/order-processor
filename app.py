@@ -222,9 +222,20 @@ CSVアップロード → 自動処理 → 結果確認 → ダウンロード
 
     writable = is_writable()
     if writable:
-        st.success("このアプリは書き込み可能です。各設定ページから直接編集できます。")
+        st.success("このアプリは書き込み可能です。各設定ページから直接編集・保存できます。")
     else:
-        st.warning("Streamlit Cloud上のため読み取り専用です。設定変更はGitHub経由で行います。")
+        st.error("""
+**重要: Streamlit Cloud版では設定変更が保存されません**
+
+このアプリはStreamlit Community Cloud上で動作しているため、ファイルシステムが読み取り専用です。
+
+- UI上でパターン追加・カテゴリ変更などの編集操作は**できます**
+- **ただし、ページ再読み込みやアプリの再起動で元に戻ります**
+- 設定を**恒久的に変更**するには、**GitHub経由**でJSONファイルを編集してください
+
+日々のCSV処理（アップロード→Excel出力）は問題なく動作します。
+影響があるのは設定ページ（パターン管理・カテゴリ管理等）の**保存**のみです。
+""")
 
     st.markdown("""
 | 設定ページ | できること |
@@ -236,29 +247,35 @@ CSVアップロード → 自動処理 → 結果確認 → ダウンロード
 | **作成名設定** | 作成名抽出キーワード・停止キーワードの編集 |
 | **商品DB** | 商品コード→カテゴリ対応表の閲覧・CSVアップロード登録 |
 | **シートレイアウト** | Excel出力時のカテゴリ別カラム定義の編集 |
+| **転送ルール** | 外注マクロの設定シート駆動ルールの確認・テスト実行 |
 """)
 
     if not writable:
-        st.subheader("GitHub経由での設定変更手順")
+        st.subheader("GitHub経由での設定変更手順（恒久反映）")
         st.markdown("""
 1. [GitHubリポジトリ](https://github.com/cremadoro-tech/order-processor) を開く
 2. `config/` フォルダ内の該当JSONファイルを選択
 3. 鉛筆アイコン（Edit）をクリック
 4. 内容を編集して「Commit changes」
-5. 数分後にStreamlit Cloudが自動で再デプロイ
+5. 数分後にStreamlit Cloudが自動で再デプロイ → 変更が恒久反映
 
 **主な設定ファイル:**
 | ファイル | 内容 |
 |---------|------|
-| `cleansing_patterns.json` | 削除パターン136件 |
-| `categories.json` | カテゴリキーワード |
-| `product_db.json` | 楽天印鑑DB（11,386件） |
-| `outsource_db.json` | 外注品DB（2,505件） |
+| `cleansing_patterns.json` | 削除パターン134件 |
+| `categories.json` | カテゴリキーワード14種 |
+| `product_db.json` | 楽天印鑑DB（11,495件） |
+| `outsource_db.json` | 外注品DB（3,042件） |
 | `amazon_db.json` | Amazon DB（297件） |
 | `seal_settings.json` | 印影確認設定 |
-| `attribute_settings.json` | 属性設定 |
+| `attribute_settings.json` | 属性・書体・文字の向き設定 |
 | `name_settings.json` | 作成名設定 |
 | `sheet_layouts.json` | Excelシートレイアウト |
+| `sheet_mapping.json` | 製品カテゴリ→シート名マッピング（42種） |
+| `transfer_rules.json` | 外注マクロ転送ルール（39商品×1,219ルール） |
+| `jointy_settings.json` | ジョインティ詳細設定（配置×文字数、プレフィックス等） |
+
+**将来的にRailway（月~$5）に移行すれば、UIからの設定変更がそのまま保存されるようになります。**
 """)
 
     st.divider()
@@ -285,10 +302,11 @@ TS-105,normal
 | 症状 | 原因 | 対処法 |
 |------|------|--------|
 | CSVが読み込めない | 文字コードが対応外 | Shift-JISまたはUTF-8で保存し直す |
-| カテゴリが「その他」になる | ひとことメモにキーワードがない | カテゴリ管理でキーワードを追加 |
-| 商品コードが照合されない | DBに未登録 | 商品DBページでCSVアップロード |
+| カテゴリが「その他」になる | ひとことメモにキーワードがない | カテゴリ管理でキーワードを追加（GitHub経由で恒久反映） |
+| 商品コードが照合されない | DBに未登録 | 商品DBページでCSVアップロード（GitHub経由で恒久反映） |
 | Excelのシートが空 | シートレイアウトの列定義が未設定 | シートレイアウトページで設定 |
-| 「読み取り専用モード」表示 | Streamlit Cloud上で実行中 | 正常。設定変更はGitHub経由で |
+| 設定を変更したのに元に戻った | Streamlit Cloudは読み取り専用 | GitHub経由でJSONファイルを編集して恒久反映 |
+| 「読み取り専用モード」表示 | Streamlit Cloud上で実行中 | 正常。日々のCSV処理は問題なし。設定変更のみGitHub経由 |
 """)
 
 
@@ -313,10 +331,10 @@ def render_feature_matrix_page():
         ("CSV読み込み（Shift-JIS/UTF-8）", "reader.py"),
         ("楽天/楽天Amazon以外の自動判定", "detect_platform()"),
         ("カラム正規化（列順の違い吸収）", "normalizer.py"),
-        ("不要文字列削除（136パターン）", "cleanser.py"),
+        ("不要文字列削除（134パターン）", "cleanser.py"),
         ("改行記号変換（##/###/●●●/<br>）", "改行変換マップ"),
         ("連続改行・先頭末尾空白の除去", "cleanser.py"),
-        ("商品コード照合（完全→前方→部分一致）", "product_lookup.py"),
+        ("商品コード照合 100%ヒット（14,834件DB）", "product_lookup.py"),
         ("印影確認キーワード検出", "seal_checker.py"),
         ("印影確認の同一注文番号への波及", "_propagate_by_order()"),
         ("販売課判定", "seal_checker.py"),
@@ -328,21 +346,30 @@ def render_feature_matrix_page():
         ("サイズ判別（【xxmm】抽出）", "attribute_parser.py"),
         ("書体判別（作成内容→キーワード）", "attribute_parser.py"),
         ("文字の向き判別（タテ/ヨコ/フルネーム）", "attribute_parser.py"),
+        ("文字の向き変換（印刷用表記: タテ→姓(タテ彫)等）", "attribute_parser.py"),
         ("書体変換（楷書体→泰楷書太 等6種）", "attribute_parser.py"),
         ("作成名抽出（正規表現）", "name_extractor.py"),
         ("ひらがな/漢字/ローマ字/カタカナ判別", "_detect_char_type()"),
-        ("カテゴリ別シート振り分け", "excel_generator.py"),
+        ("元マクロ準拠シート振り分け（製品カテゴリ→42種）", "excel_generator.py"),
         ("100行Part分割（印刷用）", "excel_generator.py"),
         ("Summaryシート（件数・数量集計）", "excel_generator.py"),
         ("バーコード生成（CODE39形式）", "excel_generator.py"),
         ("個数2以上にピンク色", "excel_generator.py"),
         ("フロンティア行に赤背景", "excel_generator.py"),
-        ("ジョインティ文字数×配置チェック", "jointy_checker.py"),
-        ("全設定のUI管理（8ページ）", "app.py"),
-        ("商品DBのCSVアップロード登録", "app.py"),
+        ("法人3本セット分割（1行→代表者印/銀行印/角印の3行）", "houjin3_splitter.py"),
+        ("ジョインティ文字数×配置チェック（22パターン）", "jointy_checker.py"),
+        ("ジョインティ配置番号正規化", "jointy_checker.py"),
+        ("ジョインティ2行区切りフラグ", "jointy_checker.py"),
+        ("ジョインティイラスト名プレフィックス付与", "jointy_checker.py"),
         ("外注マクロ設定シート駆動（39商品×1,219ルール）", "transfer_engine.py"),
         ("消費型ロジック（ConsumedLineTracker）", "transfer_engine.py"),
+        ("ペンペン/シール/ジェットストリーム振り分け表統合", "outsource_db.json"),
+        ("全設定のUI管理（11ページ）", "app.py"),
+        ("商品DBのCSVアップロード登録", "app.py"),
         ("転送ルール管理UI + テスト実行パネル", "app.py"),
+        ("処理履歴（直近5件、ダウンロードリンク付き）", "app.py"),
+        ("ファイル変更時の結果自動クリア", "app.py"),
+        ("日次運用フロー手順書", "app.py（使い方ページ）"),
     ]
 
     df_impl = pd.DataFrame(implemented, columns=["機能", "実装箇所"])
@@ -355,22 +382,12 @@ def render_feature_matrix_page():
     not_implemented = [
         ("Amazon専用CSV処理", "高",
          "Amazon（GoQ）のCSVフォーマットが異なる。「23:59:59」以降の作成内容抽出等が必要"),
-        ("外注マクロの「設定シート駆動」11パターン転送", "済",
-         "39商品×1,219ルールをJSON化し、消費型ロジック（ConsumedLineTracker）を実装済み"),
-        ("法人3本セット分割", "中",
-         "1行→3シートに分割して統合する法人特有の処理"),
         ("PDF出力・印刷レイアウト", "中",
          "Amazon印鑑テンプレのフォントサイズ80-100pt、行高さ250等・改ページ挿入"),
         ("アシール正規表現抽出（高度版）", "中",
          "氏名印のフルネーム対応・先読み付きパターン（VBScript.RegExp相当）"),
-        ("ジョインティのイラスト名プレフィックス付与", "低",
-         "すまいるばん→「すまいる」、わんこばん→「わんこ」等の自動付与"),
-        ("ジョインティの2行区切りフラグ", "低",
-         "M列に赤字「2行区切り必要」表示"),
-        ("ジョインティ配置番号の正規化", "低",
-         "「配置16」含む長い文字列→「配置16」に統一"),
-        ("文字の向き変換（印刷用表記）", "低",
-         "タテ→「姓（タテ彫）」、ヨコ→「名（ヨコ彫）右から左」への変換"),
+        ("Streamlit Cloudでの設定永続化", "中",
+         "現在は読み取り専用。Railway移行（月~$5）で解決可能"),
     ]
 
     df_not = pd.DataFrame(not_implemented, columns=["機能", "重要度", "備考"])
@@ -397,15 +414,6 @@ def render_feature_matrix_page():
         ("Amazon（GoQ）のサンプルCSV", "高",
          "Amazon専用処理の実装・テストに必要",
          "GoQシステムからエクスポートして用意"),
-        ("外注マクロの「設定シート」の中身", "高",
-         "11パターン転送ルールの再現に必要",
-         "外注マクロテンプレートNEW.xlsmの「設定」シートをCSVエクスポート"),
-        ("データベースシート（商品コード→カテゴリ）", "中",
-         "商品コード照合ヒット率を88.4%→100%に改善",
-         "各マクロの「データベース」シートをCSVエクスポートして商品DBに登録"),
-        ("法人3本セットの完成サンプル", "低",
-         "法人分割ロジックの検証に必要",
-         "法人3本分割1/2/3のサンプルExcel"),
     ]
 
     df_missing = pd.DataFrame(missing, columns=["不足物", "重要度", "用途", "対応方法"])
@@ -456,12 +464,9 @@ def render_feature_matrix_page():
     st.subheader("次のステップ（優先順位）")
     st.markdown("""
 ```
-最優先: Amazon CSV対応 + AmazonサンプルCSVの準備
-   ↓   これがないと全受注の半分が処理できない
-次点:  設定シート駆動転送 + 設定シートの中身の準備
-   ↓   外注品の精密な列配置に必要
-その次: データベースシートのCSVエクスポート → 商品DB登録
-   ↓   ヒット率88.4% → 95%+に改善
+1. 実運用テスト → 実際のCSVで元マクロ出力と比較し差分を修正
+2. Amazon CSV対応 → AmazonサンプルCSVを用意して実装
+3. Railway移行（任意）→ UIからの設定変更を永続化（月~$5）
 ```
 """)
 
