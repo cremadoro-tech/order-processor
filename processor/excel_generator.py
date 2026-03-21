@@ -37,8 +37,43 @@ THIN_BORDER = Border(
 )
 
 
+def _resolve_sheet_name(row):
+    """元マクロと同じロジックで出力シート名を決定する。
+
+    優先順位:
+    1. 特殊分類（印影確認・販売課）が設定されていればそれを使う
+    2. 製品カテゴリ → sheet_mapping.json で日本語シート名に変換
+    3. マッチしなければ「未分類」
+    """
+    mapping = load_json("sheet_mapping.json")
+    special = mapping.get("特殊分類（最優先）", {})
+    hanko = mapping.get("印鑑系（product_db）", {})
+    outsource = mapping.get("外注系（outsource_db）", {})
+    default_name = mapping.get("デフォルト", "未分類")
+
+    # 1. 特殊分類チェック
+    special_class = str(row.get("特殊分類", "")).strip()
+    if special_class and special_class in special:
+        return special[special_class]
+
+    # 2. 製品カテゴリからマッピング
+    product_cat = str(row.get("製品カテゴリ", "")).strip()
+    if product_cat:
+        # 印鑑系
+        if product_cat in hanko:
+            return hanko[product_cat]
+        # 外注系
+        if product_cat in outsource:
+            return outsource[product_cat]
+
+    return default_name
+
+
 def generate_workbook(df: pd.DataFrame) -> bytes:
-    """処理済みDataFrameからExcel作業指示書を生成してバイト列で返す。"""
+    """処理済みDataFrameからExcel作業指示書を生成してバイト列で返す。
+
+    元マクロと同じシート振り分け: 製品カテゴリ → 日本語シート名 × 単品/複数
+    """
     settings = load_json(LAYOUTS_FILE)
     layouts = settings.get("layouts", {})
     max_rows = settings.get("max_rows_per_sheet", 100)
@@ -46,27 +81,27 @@ def generate_workbook(df: pd.DataFrame) -> bytes:
     barcode_suf = settings.get("barcode_suffix", "*")
 
     wb = Workbook()
-    # デフォルトシートを削除
     wb.remove(wb.active)
 
     summary_data = []
 
-    # カテゴリ別に処理
-    if "カテゴリ" not in df.columns:
-        _write_sheet(wb, "全件", df, layouts.get("_default", {}), max_rows, barcode_pre, barcode_suf, summary_data)
-    else:
-        for category, group in df.groupby("カテゴリ", sort=False):
-            layout = layouts.get(category, layouts.get("_default", {}))
+    # 各行に出力シート名を付与
+    df = df.copy()
+    df["_出力シート"] = df.apply(_resolve_sheet_name, axis=1)
 
-            # 単品複数で分割
-            if "単品複数" in group.columns:
-                for qty_type, sub_group in group.groupby("単品複数", sort=False):
-                    sub_group = sub_group.reset_index(drop=True)
-                    sheet_name = f"{category}_{qty_type}"
-                    _write_sheet(wb, sheet_name, sub_group, layout, max_rows, barcode_pre, barcode_suf, summary_data)
-            else:
-                group = group.reset_index(drop=True)
-                _write_sheet(wb, category, group, layout, max_rows, barcode_pre, barcode_suf, summary_data)
+    # シート名別に処理
+    for sheet_base, group in df.groupby("_出力シート", sort=False):
+        layout = layouts.get(sheet_base, layouts.get("_default", {}))
+
+        # 単品複数で分割
+        if "単品複数" in group.columns:
+            for qty_type, sub_group in group.groupby("単品複数", sort=False):
+                sub_group = sub_group.reset_index(drop=True)
+                sheet_name = f"{sheet_base}_{qty_type}"
+                _write_sheet(wb, sheet_name, sub_group, layout, max_rows, barcode_pre, barcode_suf, summary_data)
+        else:
+            group = group.reset_index(drop=True)
+            _write_sheet(wb, sheet_base, group, layout, max_rows, barcode_pre, barcode_suf, summary_data)
 
     # Summaryシートを先頭に追加
     _write_summary(wb, summary_data)
