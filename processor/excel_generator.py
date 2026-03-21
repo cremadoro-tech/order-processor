@@ -91,19 +91,42 @@ def generate_workbook(df: pd.DataFrame) -> bytes:
     df = df.copy()
     df["_出力シート"] = df.apply(_resolve_sheet_name, axis=1)
 
+    # Amazon専用レイアウト
+    amazon_layouts = settings.get("amazon_layouts", {})
+    amazon_sheet_names = amazon_layouts.get("amazon_sheet_names", {})
+
     # シート名別に処理
     for sheet_base, group in df.groupby("_出力シート", sort=False):
-        layout = layouts.get(sheet_base, layouts.get("_default", {}))
+        # Amazon/楽天混在の場合はソースで分離
+        has_amazon = (group.get("ソース") == "amazon").any() if "ソース" in group.columns else False
+        has_rakuten = (group.get("ソース") != "amazon").any() if "ソース" in group.columns else True
 
-        # 単品複数で分割
-        if "単品複数" in group.columns:
-            for qty_type, sub_group in group.groupby("単品複数", sort=False):
-                sub_group = sub_group.reset_index(drop=True)
-                sheet_name = f"{sheet_base}_{qty_type}"
-                _write_sheet(wb, sheet_name, sub_group, layout, max_rows, barcode_pre, barcode_suf, summary_data)
-        else:
-            group = group.reset_index(drop=True)
-            _write_sheet(wb, sheet_base, group, layout, max_rows, barcode_pre, barcode_suf, summary_data)
+        # 楽天データ
+        if has_rakuten:
+            rakuten_group = group[group.get("ソース", "") != "amazon"] if has_amazon else group
+            layout = layouts.get(sheet_base, layouts.get("_default", {}))
+            if "単品複数" in rakuten_group.columns:
+                for qty_type, sub_group in rakuten_group.groupby("単品複数", sort=False):
+                    sub_group = sub_group.reset_index(drop=True)
+                    sheet_name = f"{sheet_base}_{qty_type}"
+                    _write_sheet(wb, sheet_name, sub_group, layout, max_rows, barcode_pre, barcode_suf, summary_data)
+            else:
+                rakuten_group = rakuten_group.reset_index(drop=True)
+                _write_sheet(wb, sheet_base, rakuten_group, layout, max_rows, barcode_pre, barcode_suf, summary_data)
+
+        # Amazonデータ（専用レイアウト・シート名）
+        if has_amazon:
+            amazon_group = group[group.get("ソース") == "amazon"]
+            amazon_sheet = amazon_sheet_names.get(sheet_base, sheet_base)
+            amazon_layout = amazon_layouts.get(sheet_base, amazon_layouts.get("_default", {}))
+            if "単品複数" in amazon_group.columns:
+                for qty_type, sub_group in amazon_group.groupby("単品複数", sort=False):
+                    sub_group = sub_group.reset_index(drop=True)
+                    sheet_name = f"{amazon_sheet}{qty_type}"
+                    _write_sheet(wb, sheet_name, sub_group, amazon_layout, max_rows, barcode_pre, barcode_suf, summary_data)
+            else:
+                amazon_group = amazon_group.reset_index(drop=True)
+                _write_sheet(wb, amazon_sheet, amazon_group, amazon_layout, max_rows, barcode_pre, barcode_suf, summary_data)
 
     # Summaryシートを先頭に追加
     _write_summary(wb, summary_data)
@@ -211,9 +234,11 @@ def _write_sheet(
 
                 if is_amazon:
                     # Amazon専用の値マッピング
+                    amazon_src = col_def.get("amazon_source", header)
                     value = _extract_amazon_value(
                         data_row, header, amazon_attrs, short_name,
-                        row_idx - 1, barcode_pre, barcode_suf
+                        row_idx - 1, barcode_pre, barcode_suf,
+                        amazon_source=amazon_src,
                     )
                 elif use_transfer_engine:
                     value = transfer_result.get(header, "")
@@ -321,46 +346,44 @@ def _extract_value(row: pd.Series, col_def: dict, row_number: int, barcode_pre: 
     return raw
 
 
-def _extract_amazon_value(row, header, amazon_attrs, short_name, row_number, barcode_pre, barcode_suf):
-    """Amazon用の値取得。amazon_extractorの結果とrow情報を組み合わせる。"""
-    # 番号
-    if header in ("番号", "No"):
-        return row_number
+def _extract_amazon_value(row, header, amazon_attrs, short_name, row_number, barcode_pre, barcode_suf, amazon_source=""):
+    """Amazon用の値取得。amazon_sourceキーで何のデータを取るか指定。"""
+    src = amazon_source or header
 
-    # 商品名（短縮版）
-    if header == "商品名":
+    # 空文字指定 = 空欄出力（Amazon備考欄は作成内容抽出に使ったので空にする）
+    if src == "":
+        return ""
+    if src in ("備考", "備考欄"):
+        return ""
+
+    # 短縮商品名
+    if src == "short_name":
         return short_name
 
-    # Amazon抽出結果から取得
-    if header in ("書体",):
-        return amazon_attrs.get("書体", "")
-    if header in ("カラー",):
-        return amazon_attrs.get("カラー", "")
-    if header in ("作成名",):
-        return amazon_attrs.get("作成名", "")
-    if header in ("サイズ",):
-        return amazon_attrs.get("サイズ", "")
-    if header in ("配置", "文字の配置"):
-        return amazon_attrs.get("配置", "")
+    # Amazon抽出結果
+    if src in ("書体", "カラー", "作成名", "サイズ", "配置"):
+        return amazon_attrs.get(src, "")
 
     # 元データから直接取得
-    if header == "個数":
+    if src == "個数":
         val = str(row.get("個数", "1"))
         return val.replace(".0", "") if val.endswith(".0") else val
-    if header == "管理番号":
+    if src == "GoQ管理番号":
         return str(row.get("GoQ管理番号", ""))
-    if header in ("バーコード", "番号") and header == "バーコード":
-        goq = str(row.get("GoQ管理番号", ""))
-        return f"{barcode_pre}{goq}{barcode_suf}" if goq else ""
-    if header == "ひとこと":
+    if src == "ひとことメモ":
         return str(row.get("ひとことメモ", ""))
-    if header == "単品":
-        return str(row.get("単品複数", ""))
-    if header in ("備考", "備考欄"):
-        return ""  # Amazon備考は作成内容抽出に使ったので空
-    if header == "注文者氏名":
+    if src == "単品複数":
+        # AmazonJP / フロンティア / フロンティア+ の形式にする
+        qty = str(row.get("単品複数", ""))
+        delivery = str(row.get("配送区分", ""))
+        if "フロンティア" in delivery:
+            if qty == "単品+":
+                return "フロンティア+"
+            return "フロンティア"
+        return "AmazonJP"
+    if src == "注文者氏名":
         return str(row.get("注文者氏名", ""))
-    if header == "セット":
+    if src == "セット":
         name = str(row.get("商品名", ""))
         if "2点セット" in name:
             return "2点セット"
@@ -368,9 +391,9 @@ def _extract_amazon_value(row, header, amazon_attrs, short_name, row_number, bar
             return "3点セット"
         return ""
 
-    # フォールバック: 列名と同じデータ列があればそれを使う
-    if header in row.index:
-        return str(row.get(header, ""))
+    # フォールバック
+    if src in row.index:
+        return str(row.get(src, ""))
 
     return ""
 

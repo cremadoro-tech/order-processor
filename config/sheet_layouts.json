@@ -145,5 +145,113 @@
   },
   "max_rows_per_sheet": 100,
   "barcode_prefix": "*",
-  "barcode_suffix": "*"
+  "barcode_suffix": "*",
+
+  "amazon_layouts": {
+    "_comment": "Amazon専用レイアウト。マクロ③（アシールamazonテンプレート）の出力フォーマットを再現。",
+    "amazon_sheet_names": {
+      "ジョインティ": "J９",
+      "オスカ": "オスカ",
+      "のべ台": "のべ台",
+      "オリジナル分割印": "オリジナル分割印",
+      "のしスキナ": "のし",
+      "おむつスキナ": "おむつ",
+      "タニエバー": "タニガワ",
+      "ジェットストリーム": "ジェットストリーム",
+      "ペンペン": "ペンペン",
+      "クルトガ": "クルトガ",
+      "おなまえスタンプ": "おなまえ",
+      "お名前シールお名前セット": "おなまえシール"
+    },
+    "ジョインティ": {
+      "columns": [
+        {"header": "商品名", "amazon_source": "short_name"},
+        {"header": "カラー", "amazon_source": "カラー"},
+        {"header": "書体", "amazon_source": "書体"},
+        {"header": "作成名", "amazon_source": "作成名"},
+        {"header": "個数", "amazon_source": "個数"},
+        {"header": "備考", "amazon_source": ""},
+        {"header": "ひとこと", "amazon_source": "ひとことメモ"},
+        {"header": "単品", "amazon_source": "単品複数"},
+        {"header": "管理番号", "amazon_source": "GoQ管理番号"}
+      ]
+    },
+    "オスカ": {
+      "columns": [
+        {"header": "商品名", "amazon_source": "short_name"},
+        {"header": "カラー", "amazon_source": "カラー"},
+        {"header": "書体", "amazon_source": "書体"},
+        {"header": "作成名", "amazon_source": "作成名"},
+        {"header": "個数", "amazon_source": "個数"},
+        {"header": "備考", "amazon_source": ""},
+        {"header": "ひとこと", "amazon_source": "ひとことメモ"},
+        {"header": "単品", "amazon_source": "単品複数"},
+        {"header": "管理番号", "amazon_source": "GoQ管理番号"}
+      ]
+    },
+    "のべ台": {
+      "columns": [
+        {"header": "商品名", "amazon_source": "short_name"},
+        {"header": "サイズ", "amazon_source": "サイズ"},
+        {"header": "書体", "amazon_source": "書体"},
+        {"header": "配置", "amazon_source": "配置"},
+        {"header": "個数", "amazon_source": "個数"},
+        {"header": "作成名", "amazon_source": "作成名"},
+        {"header": "備考欄", "amazon_source": ""},
+        {"header": "ひとこと", "amazon_source": "ひとことメモ"},
+        {"header": "単品", "amazon_source": "単品複数"},
+        {"header": "管理番号", "amazon_source": "GoQ管理番号"}
+      ]
+    },
+    "オリジナル分割印": {
+      "columns": [
+        {"header": "商品名", "amazon_source": "short_name"},
+        {"header": "書体", "amazon_source": "書体"},
+        {"header": "文字の配置", "amazon_source": "配置"},
+        {"header": "作成名", "amazon_source": "作成名"},
+        {"header": "個数", "amazon_source": "個数"},
+        {"header": "備考", "amazon_source": ""},
+        {"header": "ひとこと", "amazon_source": "ひとことメモ"},
+        {"header": "管理番号", "amazon_source": "GoQ管理番号"}
+      ]
+    },
+    "のしスキナ": {
+      "columns": [
+        {"header": "商品名", "amazon_source": "short_name"},
+        {"header": "書体", "amazon_source": "書体"},
+        {"header": "セット", "amazon_source": "セット"},
+        {"header": "作成名", "amazon_source": "作成名"},
+        {"header": "個数", "amazon_source": "個数"},
+        {"header": "備考", "amazon_source": ""},
+        {"header": "ひとこと", "amazon_source": "ひとことメモ"},
+        {"header": "単品", "amazon_source": "単品複数"},
+        {"header": "番号", "amazon_source": "GoQ管理番号"}
+      ]
+    },
+    "おむつスキナ": {
+      "columns": [
+        {"header": "商品名", "amazon_source": "short_name"},
+        {"header": "商品名", "amazon_source": "short_name"},
+        {"header": "作成名", "amazon_source": "作成名"},
+        {"header": "個数", "amazon_source": "個数"},
+        {"header": "備考", "amazon_source": ""},
+        {"header": "ひとこと", "amazon_source": "ひとことメモ"},
+        {"header": "単品", "amazon_source": "単品複数"},
+        {"header": "番号", "amazon_source": "GoQ管理番号"}
+      ]
+    },
+    "_default": {
+      "columns": [
+        {"header": "商品名", "amazon_source": "short_name"},
+        {"header": "カラー", "amazon_source": "カラー"},
+        {"header": "書体", "amazon_source": "書体"},
+        {"header": "作成名", "amazon_source": "作成名"},
+        {"header": "個数", "amazon_source": "個数"},
+        {"header": "備考", "amazon_source": ""},
+        {"header": "ひとこと", "amazon_source": "ひとことメモ"},
+        {"header": "単品", "amazon_source": "単品複数"},
+        {"header": "管理番号", "amazon_source": "GoQ管理番号"}
+      ]
+    }
+  }
 }
