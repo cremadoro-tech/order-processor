@@ -27,8 +27,11 @@ def check_quantity_advanced(df: pd.DataFrame) -> pd.DataFrame:
     for idx in df.index:
         sku = str(df.at[idx, sku_col]) if sku_col else ""
         code = str(df.at[idx, code_col]) if code_col else ""
+        product_name = str(df.at[idx, product_col]) if product_col else ""
         # SKU優先、なければ商品コードで検索
         cat = lookup_product_code(sku) or lookup_product_code(code)
+        # 商品名による補正（マクロの商品コード2変換を再現）
+        cat = _correct_category_by_name(cat, product_name)
         df.at[idx, "製品カテゴリ"] = cat
 
     # 注文番号ベースの複数判定
@@ -39,6 +42,26 @@ def check_quantity_advanced(df: pd.DataFrame) -> pd.DataFrame:
     df = _check_delivery_type(df)
 
     return df
+
+
+def _correct_category_by_name(cat: str, product_name: str) -> str:
+    """商品名に基づいてカテゴリを補正する。
+
+    マクロでは商品コード2列をVLOOKUPで変換してから振り分けていたが、
+    アプリではSKUベースでルックアップするため一部の商品で差異が出る。
+    商品名のキーワードで補正して元マクロと同じ振り分けにする。
+    """
+    if not product_name:
+        return cat
+    # 中包み系: gomu-sk等の汎用カテゴリ→中包み専用カテゴリに補正
+    if "中包み" in product_name:
+        if "木台" in product_name:
+            return "nakadutsumi-kidai"
+        return "nakadutsumi-sk"
+    # イラスト入り住所印: gomu-sk→gomu-iraad-skに補正
+    if cat == "gomu-sk" and ("イラスト" in product_name or "イラスト入り" in product_name):
+        return "gomu-iraad-sk"
+    return cat
 
 
 def _advanced_quantity_check(df: pd.DataFrame, order_col: str) -> pd.DataFrame:
