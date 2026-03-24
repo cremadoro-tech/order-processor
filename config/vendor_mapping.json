@@ -3,12 +3,7 @@
   "vendors": {
     "東京製版": {
       "description": "おなまえスタンプ（名入れセット）専門",
-      "categories_rakuten": [
-        "おなまえスタンプ",
-        "おなまえスタンプ兄弟",
-        "コスパ",
-        "お名前シールお名前セット"
-      ],
+      "categories_rakuten": [],
       "categories_amazon": [
         "onamae-st",
         "onamae-9set",
@@ -33,20 +28,18 @@
         "onamae-pin3l",
         "onamepon-1",
         "onamepon-brother",
-        "cospa",
-        "nyuen-new",
-        "onamae-seal",
-        "onamae-seal2",
-        "seal",
-        "seal-stmp",
-        "プチっと"
+        "nyuen-new"
       ],
       "split_by": "set_type",
       "delivery_rakuten": {
         "単品": "JP倉庫",
         "複数": "JP倉庫"
       },
-      "delivery_amazon": "本社"
+      "delivery_amazon": "本社",
+      "categories_yahoo": [
+        "おなまえスタンプ",
+        "おなまえスタンプ兄弟"
+      ]
     },
     "永江印祥堂": {
       "description": "住所印・ゴム印・のし系専門",
@@ -103,7 +96,11 @@
         "スキナ角印",
         "プッシュ",
         "インボイスゴム印",
-        "ゴム角"
+        "ゴム角",
+        "お名前シールお名前セット",
+        "コスパ",
+        "おなまえスタンプ",
+        "おなまえスタンプ兄弟"
       ],
       "categories_amazon": [
         "jyoin-10",
@@ -153,7 +150,13 @@
         "push-05",
         "push-06",
         "invoice-gomu",
-        "gomu-kaku"
+        "gomu-kaku",
+        "cospa",
+        "seal",
+        "seal-stmp",
+        "onamae-seal",
+        "onamae-seal2",
+        "プチっと"
       ],
       "split_by": "単品複数",
       "delivery_rakuten": {

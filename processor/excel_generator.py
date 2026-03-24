@@ -535,21 +535,36 @@ def generate_vendor_workbooks(df: pd.DataFrame) -> dict:
 
     for vendor_name, vendor_def in vendors.items():
         cats_rakuten = set(vendor_def.get("categories_rakuten", []))
+        cats_yahoo = set(vendor_def.get("categories_yahoo", []))
         cats_amazon = set(vendor_def.get("categories_amazon", []))
 
-        # 楽天/Yahoo!: _出力シート名でフィルタ
+        source_col = df.get("ソース", pd.Series(dtype=str))
+
+        # 楽天: ソースが"rakuten"の行のみ
         mask_rakuten = (
-            (df.get("ソース", pd.Series(dtype=str)) != "amazon")
+            (source_col == "rakuten")
+            & df["_出力シート"].isin(cats_rakuten)
+        ) if cats_rakuten else pd.Series(False, index=df.index)
+
+        # Yahoo!/Qoo10等: ソースが"non_rakuten"の行
+        mask_yahoo = (
+            (source_col == "non_rakuten")
+            & df["_出力シート"].isin(cats_yahoo)
+        ) if cats_yahoo else pd.Series(False, index=df.index)
+
+        # 楽天+Yahoo!共通カテゴリ（categories_rakutenにある場合はnon_rakutenも含む）
+        mask_rakuten_both = (
+            (source_col.isin(["rakuten", "non_rakuten"]))
             & df["_出力シート"].isin(cats_rakuten)
         ) if cats_rakuten else pd.Series(False, index=df.index)
 
         # Amazon: 製品カテゴリでフィルタ
         mask_amazon = (
-            (df.get("ソース", pd.Series(dtype=str)) == "amazon")
+            (source_col == "amazon")
             & df["製品カテゴリ"].isin(cats_amazon)
         ) if cats_amazon else pd.Series(False, index=df.index)
 
-        vendor_df = df[mask_rakuten | mask_amazon]
+        vendor_df = df[mask_rakuten_both | mask_yahoo | mask_amazon]
 
         if len(vendor_df) == 0:
             continue
@@ -560,18 +575,24 @@ def generate_vendor_workbooks(df: pd.DataFrame) -> dict:
 
     # 未割当データも出力（どの外注先にも属さない行）
     all_assigned = pd.Series(False, index=df.index)
+    source_col = df.get("ソース", pd.Series(dtype=str))
     for vendor_name, vendor_def in vendors.items():
         cats_r = set(vendor_def.get("categories_rakuten", []))
+        cats_y = set(vendor_def.get("categories_yahoo", []))
         cats_a = set(vendor_def.get("categories_amazon", []))
         mask_r = (
-            (df.get("ソース", pd.Series(dtype=str)) != "amazon")
+            source_col.isin(["rakuten", "non_rakuten"])
             & df["_出力シート"].isin(cats_r)
         ) if cats_r else pd.Series(False, index=df.index)
+        mask_y = (
+            (source_col == "non_rakuten")
+            & df["_出力シート"].isin(cats_y)
+        ) if cats_y else pd.Series(False, index=df.index)
         mask_a = (
-            (df.get("ソース", pd.Series(dtype=str)) == "amazon")
+            (source_col == "amazon")
             & df["製品カテゴリ"].isin(cats_a)
         ) if cats_a else pd.Series(False, index=df.index)
-        all_assigned = all_assigned | mask_r | mask_a
+        all_assigned = all_assigned | mask_r | mask_y | mask_a
 
     unassigned = df[~all_assigned]
     if len(unassigned) > 0:
