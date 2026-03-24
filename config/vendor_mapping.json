@@ -275,13 +275,18 @@
     },
     "ユニパレ・ハハトコ": {
       "description": "三菱鉛筆名入れ鉛筆（ユニパレット・ハハトコ）",
-      "categories_rakuten": [],
+      "categories_rakuten": [
+        "ユニパレ・ハハトコ"
+      ],
       "categories_amazon": [
         "mitsubishipencil"
       ],
       "split_by": null,
       "format": "csv+xls",
-      "delivery_amazon": "フロンティア"
+      "delivery_amazon": "フロンティア",
+      "categories_yahoo": [
+        "ユニパレ・ハハトコ"
+      ]
     },
     "浸透印系": {
       "description": "各種浸透印（みました・おむつ・のし袋・布用・おしごと・再提出・マス目・解き直し）",
