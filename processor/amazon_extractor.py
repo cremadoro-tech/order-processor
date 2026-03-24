@@ -101,12 +101,32 @@ def _extract_font(text):
     if match:
         return match.group(1).strip()
 
-    # パターン6: 書体名が直接テキスト内にある（フリーテキスト対応）
+    # パターン6: 書体:○○（コロン区切り、括弧なし）
+    match = re.search(r"書体[：:]\s*([^\s　\n【】]+)", text)
+    if match:
+        val = match.group(1).strip().rstrip("※")
+        # 書体名リストと照合
+        font_names_map = {"楷書": "楷書体", "明朝": "明朝体", "古印": "古印体",
+                          "行書": "行書体", "隷書": "隷書体", "てん書": "てん書体",
+                          "印相": "印相体", "丸ゴシック": "丸ゴシック体", "ゴシック": "ゴシック体",
+                          "クラフト": "クラフト体"}
+        for short, full in font_names_map.items():
+            if short in val:
+                return full
+        return val
+
+    # パターン7: 書体名が直接テキスト内にある（フリーテキスト対応）
     font_names = ["楷書体", "明朝体", "古印体", "行書体", "隷書体", "てん書体",
-                  "印相体", "丸ゴシック体", "丸ゴシック", "ゴシック体"]
+                  "印相体", "丸ゴシック体", "丸ゴシック", "ゴシック体", "クラフト体"]
     for font in font_names:
         if font in text:
             return font
+
+    # パターン8: 「楷書」「明朝」など短縮形
+    short_fonts = {"楷書": "楷書体", "明朝": "明朝体", "古印": "古印体"}
+    for short, full in short_fonts.items():
+        if short in text:
+            return full
 
     return ""
 
@@ -151,11 +171,14 @@ def _extract_creation_name(text):
         name = re.sub(r"[\s　]+", "", name)
         return name
 
-    # パターン5: 【彫刻名】○○ （コロンなし括弧）
-    match = re.search(r"【(?:彫刻名|名前|作成名)】\s*([^\s　【\n]+)", text)
+    # パターン5: 【彫刻名】○○ or 【作成名：○○】（コロンなし or 内部コロン）
+    match = re.search(r"【(?:彫刻名|名前|作成名)[：:]?([^】]+)】", text)
     if match:
         name = match.group(1).strip()
-        name = re.split(r"(?:書体|字体|山が|です)", name)[0].strip()
+        name = re.split(r"(?:書体|字体|山が|です|カラー)", name)[0].strip()
+        # コロンの後に名前がある場合
+        if "：" in name or ":" in name:
+            name = re.split(r"[：:]", name, 1)[-1].strip()
         if name:
             return name
 
@@ -165,24 +188,34 @@ def _extract_creation_name(text):
         # この場合「書体」の値が実は名前
         return match.group(1).strip()
 
-    # パターン7: フリーテキスト（名前 書体 注文者名）
-    # 書体名を見つけて、その前の部分を作成名とする
-    font_names = ["楷書体", "明朝体", "古印体", "行書体", "隷書体", "てん書体",
-                  "印相体", "丸ゴシック体", "丸ゴシック", "ゴシック体"]
-    for font in font_names:
+    # パターン7: フリーテキスト（名前 書体 注文者名）or（カラー 書体 名前 注文者名）
+    # 書体名（短縮形含む）を見つけて、その前後から作成名を探す
+    font_patterns = ["楷書体", "明朝体", "古印体", "行書体", "隷書体", "てん書体",
+                     "印相体", "丸ゴシック体", "丸ゴシック", "ゴシック体", "クラフト体",
+                     "楷書", "明朝", "古印"]
+    # カラー名リスト（フリーテキストから除去用）
+    color_names = {"アイボリー", "プレミアムブルー", "プレミアムレッド", "パステルブルー",
+                   "パステルイエロー", "コーラルピンク", "ミントグリーン", "ラベンダー",
+                   "ローズピンク", "グレージュ", "ハニーオレンジ", "レモンイエロー",
+                   "ピュアホワイト", "スカイブルー", "スモーキーピンク", "ライムグリーン",
+                   "ピアノブラック", "アッシュピンク", "アッシュグレー",
+                   "ブラック", "ホワイト", "ディープブルー", "ライトブルー",
+                   "ディープピンク", "ライトピンク", "イエロー"}
+    for font in font_patterns:
         if font in text:
             idx = text.find(font)
             before = text[:idx].strip()
             if before:
-                parts = re.split(r"[\s　]+", before)
-                name = parts[-1].strip()
-                if name and len(name) <= 10:
-                    return name
+                parts = [p for p in re.split(r"[\s　]+", before) if p not in color_names]
+                if parts:
+                    name = parts[-1].strip()
+                    if name and 1 <= len(name) <= 10 and re.search(r"[\u3040-\u309F\u4E00-\u9FFF]", name):
+                        return name
             after = text[idx + len(font):].strip()
             if after:
                 parts = re.split(r"[\s　]+", after)
                 name = parts[0].strip()
-                if name and len(name) <= 10 and not any(c.isascii() and c.isalpha() for c in name):
+                if name and 1 <= len(name) <= 10 and re.search(r"[\u3040-\u309F\u4E00-\u9FFF]", name):
                     return name
             break
 
