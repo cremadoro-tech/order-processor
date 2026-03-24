@@ -1,0 +1,390 @@
+{
+  "_description": "外注先マッピング定義。カテゴリ（製品カテゴリまたはtransfer_rulesのシート名）→外注先→出力ファイルの対応を定義する。",
+  "vendors": {
+    "東京製版": {
+      "description": "おなまえスタンプ（名入れセット）専門",
+      "categories_rakuten": [
+        "おなまえスタンプ",
+        "おなまえスタンプ兄弟",
+        "コスパ",
+        "お名前シールお名前セット"
+      ],
+      "categories_amazon": [
+        "onamae-st",
+        "onamae-9set",
+        "onamae-10set",
+        "onamae-8set",
+        "onamae-3set",
+        "onamae-2set",
+        "onamae-pl",
+        "onamae-ll",
+        "onamae-xs",
+        "onamae-16",
+        "onamae-sdx",
+        "onamae-dx",
+        "onamae-04",
+        "onamae-01",
+        "onamae-02",
+        "onamae-03",
+        "onamaepon-5",
+        "onamae-pin",
+        "onamae-pin3s",
+        "onamae-pinxl",
+        "onamae-pin3l",
+        "onamepon-1",
+        "onamepon-brother",
+        "cospa",
+        "nyuen-new",
+        "onamae-seal",
+        "onamae-seal2",
+        "seal",
+        "seal-stmp",
+        "プチっと"
+      ],
+      "split_by": "set_type",
+      "delivery_rakuten": {
+        "単品": "JP倉庫",
+        "複数": "JP倉庫"
+      },
+      "delivery_amazon": "本社"
+    },
+    "永江印祥堂": {
+      "description": "住所印・ゴム印・のし系専門",
+      "categories_rakuten": [
+        "スキナ住所印",
+        "トップスター",
+        "アドレスマークⅡ",
+        "イラストスキナ住所印",
+        "中包みスキナ",
+        "中包み木台",
+        "スキナ風雅印",
+        "風雅印",
+        "楽々のし 本社納品"
+      ],
+      "categories_amazon": [
+        "gomu-sk",
+        "gomu-sk-m",
+        "gomu-sk-k",
+        "gomu-skf",
+        "gomu-top",
+        "gomu-ad",
+        "gomu-fg",
+        "gomu-raku",
+        "gomu-iraad-wd",
+        "gomu-iraad-sk",
+        "nakadutsumi-kidai",
+        "nakadutsumi-sk"
+      ],
+      "split_by": "単品複数",
+      "delivery_rakuten": {
+        "単品": "JP",
+        "複数": "JP第2",
+        "楽のし": "本社"
+      },
+      "delivery_amazon": {
+        "単品": "本社",
+        "複数": "本社"
+      }
+    },
+    "アシール": {
+      "description": "ジョインティ・オスカ・のべ台・分割印・おむつ・おなまえ複数",
+      "categories_rakuten": [
+        "ジョインティ",
+        "オスカ",
+        "のべ台",
+        "オリジナル分割印",
+        "おむつスキナ",
+        "おむつ木台",
+        "おむつトップ",
+        "おむつ+タグ用木台",
+        "タグ用木台",
+        "のしスキナ",
+        "スキナ丸印",
+        "スキナ角印",
+        "プッシュ",
+        "インボイスゴム印",
+        "ゴム角"
+      ],
+      "categories_amazon": [
+        "jyoin-10",
+        "jyoin-6",
+        "jyoin-5",
+        "jyoin-k",
+        "jyoin-n",
+        "jyoin-p",
+        "jyoin-w",
+        "jyoin-s",
+        "jyoin-irast",
+        "jyoin-smail",
+        "jyoin-mimasita",
+        "oscca-10",
+        "oscca-6",
+        "namein-oscca-bk",
+        "namein-oscca-db",
+        "namein-oscca-lb",
+        "namein-oscca-dp",
+        "namein-oscca-lp",
+        "namein-oscca-wh",
+        "namein-oscca-yl",
+        "namein-oscca-bk6",
+        "namein-oscca-db6",
+        "namein-oscca-lb6",
+        "namein-oscca-dp6",
+        "namein-oscca-lp6",
+        "namein-oscca-wh6",
+        "namein-oscca-yl6",
+        "gomu-nob",
+        "original-bunkatsuin",
+        "omutu-st",
+        "omutu-kidai",
+        "omutu-tagu",
+        "omutu-top",
+        "omu-kidai-set",
+        "omutu",
+        "omutu-shintou",
+        "noshi",
+        "noshi-2set",
+        "noshi-i",
+        "noshi-usu",
+        "push-01",
+        "push-02",
+        "push-03",
+        "push-04",
+        "push-05",
+        "push-06",
+        "invoice-gomu",
+        "gomu-kaku"
+      ],
+      "split_by": "単品複数",
+      "delivery_rakuten": {
+        "単品": "JP",
+        "複数": "JP第2倉庫"
+      },
+      "delivery_amazon": {
+        "単品": "JP第2倉庫",
+        "単品+": "フロンティア",
+        "複数": "フロンティア"
+      }
+    },
+    "ジェットストリーム": {
+      "description": "三菱鉛筆ジェットストリーム ボールペン名入れ",
+      "categories_rakuten": [
+        "ジェットストリーム"
+      ],
+      "categories_amazon": [
+        "jetstream"
+      ],
+      "split_by": null,
+      "delivery_amazon": ""
+    },
+    "タニエバ": {
+      "description": "タニエバー系キャップレスネーム印",
+      "categories_rakuten": [
+        "タニエバー"
+      ],
+      "categories_amazon": [
+        "tani-n-gtc",
+        "tani-n-gtc-cikw",
+        "tani-n-gtc-sp",
+        "tani-n-gtc-r",
+        "tani-n-gtc-naire",
+        "tani-n-gtc-y",
+        "tani-n-g",
+        "tani-n-g-k",
+        "tani-n-g-r",
+        "tani-n-g-o",
+        "tani-n-gt",
+        "tani-n-gt-r",
+        "tani-n-gt-w",
+        "tani-n-gt-k",
+        "tani-n-gt-o",
+        "tani-n-gt-sp",
+        "tani-n-gtk",
+        "tani-n-gtk-sp",
+        "tani-n-gtk-fl",
+        "tani-n-gtl",
+        "tani-n-gtl-o",
+        "tani-n-gtw-sp",
+        "tani-n-mg-w",
+        "tani-n-mg-s",
+        "tani-n-mtg",
+        "tani-n-cl",
+        "tani-p-g",
+        "tani-p-g-gtgk",
+        "tani-p-g-w",
+        "tani-p-g-wa",
+        "tani-p-g-r",
+        "tani-p-g-naire",
+        "tani-p-g-sm",
+        "tani-p-g-jr",
+        "tani-p-g-fl",
+        "tani-p-g-chara",
+        "tani-p-g-sp",
+        "tani-p-g-spw",
+        "tani-p-g-solid",
+        "tani-p-g-touch",
+        "tani-p-g-cikw",
+        "tani-p-g-swaro",
+        "tani-p-g-silever",
+        "tani-p-gt-solid",
+        "tani-p-4f",
+        "tani-p-4fcl",
+        "tani-p-4fmetal",
+        "tani-p-4f-k",
+        "tani-p-4f-wa",
+        "tani-p-4fe",
+        "tani-p-4fgel",
+        "tani-p-9",
+        "tani-p-side",
+        "tani-p-revi",
+        "tani-p-revi-gtgk",
+        "tani-p-wa",
+        "tani-door",
+        "tani-gtk-01",
+        "tani-4fgel-01",
+        "tani-sp-4fcl",
+        "tani-sp-4fcl-01",
+        "tani-mini-touch-01",
+        "tani-rk-stg",
+        "tani-gt-clip",
+        "tani-sale-01",
+        "tani-sra-g",
+        "tuingtgk-clip",
+        "door-namein",
+        "sra-g",
+        "parker"
+      ],
+      "split_by": null,
+      "delivery_rakuten": "",
+      "delivery_amazon": ""
+    },
+    "ペンペン": {
+      "description": "名入れ鉛筆（ペンペンブランド）",
+      "categories_rakuten": [
+        "ペンペン"
+      ],
+      "categories_amazon": [
+        "penpen"
+      ],
+      "split_by": null,
+      "format": "csv+xls",
+      "delivery_amazon": "フロンティア"
+    },
+    "ユニパレ・ハハトコ": {
+      "description": "三菱鉛筆名入れ鉛筆（ユニパレット・ハハトコ）",
+      "categories_rakuten": [],
+      "categories_amazon": [
+        "mitsubishipencil"
+      ],
+      "split_by": null,
+      "format": "csv+xls",
+      "delivery_amazon": "フロンティア"
+    },
+    "浸透印系": {
+      "description": "各種浸透印（みました・おむつ・のし袋・布用・おしごと・再提出・マス目・解き直し）",
+      "categories_rakuten": [
+        "みました浸透印",
+        "おむつ浸透印",
+        "のし袋用浸透印",
+        "布用持ち物　浸透印",
+        "おしごとスタンプ浸透印",
+        "再提出浸透印",
+        "マス目浸透印",
+        "解き直しはんこ浸透印"
+      ],
+      "categories_amazon": [
+        "mimashita-sinto",
+        "omutu-shintou",
+        "cloth-shintou",
+        "job-shintou",
+        "resubmit-shintou",
+        "moshi-shintou",
+        "masume-shintou",
+        "resolve-shintou",
+        "keicho-shintou"
+      ],
+      "split_by": null,
+      "delivery_rakuten": "JP",
+      "delivery_amazon": ""
+    },
+    "クルトガ": {
+      "description": "クルトガ・LAMY系シャープペンシル",
+      "categories_rakuten": [
+        "クルトガ"
+      ],
+      "categories_amazon": [
+        "kurutoga"
+      ],
+      "split_by": null,
+      "delivery_amazon": ""
+    },
+    "その他": {
+      "description": "上記に該当しないカテゴリ",
+      "categories_rakuten": [
+        "その他",
+        "消耗品",
+        "印影確認",
+        "販売課",
+        "未分類"
+      ],
+      "categories_amazon": [
+        "other",
+        "outsource",
+        "consumable",
+        "consumable"
+      ],
+      "split_by": null,
+      "delivery_rakuten": "",
+      "delivery_amazon": ""
+    },
+    "印鑑": {
+      "description": "印鑑系（上柘・黒水牛・チタン・スワロ・宝石・法人・名入れ）",
+      "categories_rakuten": [
+        "印鑑",
+        "印鑑2本",
+        "印鑑3本",
+        "チタン",
+        "チタン2",
+        "チタン3",
+        "スワロ",
+        "スワロ2",
+        "スワロ3",
+        "宝石",
+        "宝石2",
+        "宝石3",
+        "法人",
+        "法人2",
+        "法人3本",
+        "チタン法人",
+        "チタン法人2",
+        "チタン法人3",
+        "名入れスペシャル"
+      ],
+      "categories_amazon": [
+        "normal",
+        "normal2",
+        "normal3",
+        "nomal",
+        "swaro",
+        "swaro2",
+        "swaro3",
+        "titan",
+        "titan2",
+        "titan3",
+        "houseki",
+        "houseki2",
+        "houseki3",
+        "houjin",
+        "houjin2",
+        "houjin3",
+        "titanhoujin",
+        "titanhoujin2",
+        "titanhoujin3",
+        "naire"
+      ],
+      "split_by": "単品複数",
+      "delivery_rakuten": "",
+      "delivery_amazon": ""
+    }
+  }
+}

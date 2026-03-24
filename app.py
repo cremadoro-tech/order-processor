@@ -17,7 +17,7 @@ from processor.seal_checker import check_seal_confirmation
 from processor.caution_extractor import extract_cautions
 from processor.attribute_parser import parse_attributes
 from processor.name_extractor import extract_names
-from processor.excel_generator import generate_workbook
+from processor.excel_generator import generate_workbook, generate_vendor_zip
 from processor.jointy_checker import check_jointy
 from processor.quantity_checker import check_quantity_advanced
 from processor.exporter import to_csv_bytes, to_zip_bytes, generate_filename
@@ -537,18 +537,16 @@ def render_processing_page():
 
     if not uploaded_files:
         # ファイルがなくなったら前の結果をクリア
-        if "result_df" in st.session_state:
-            del st.session_state["result_df"]
-        if "last_files" in st.session_state:
-            del st.session_state["last_files"]
+        for key in ("result_df", "last_files", "excel_bytes", "vendor_zip_bytes"):
+            st.session_state.pop(key, None)
         st.info("CSVファイルをドラッグ&ドロップ、またはクリックして選択してください。")
         return
 
     # ファイルが変わったら前の結果をクリア
     current_files = tuple(sorted(f"{f.name}_{f.size}" for f in uploaded_files))
     if st.session_state.get("last_files") != current_files:
-        if "result_df" in st.session_state:
-            del st.session_state["result_df"]
+        for key in ("result_df", "excel_bytes", "vendor_zip_bytes"):
+            st.session_state.pop(key, None)
         st.session_state["last_files"] = current_files
 
     # ファイル情報表示
@@ -774,24 +772,39 @@ def render_results(df: pd.DataFrame):
     # ダウンロード
     st.header("3. ダウンロード")
 
-    # Excel作業指示書（1クリックで生成+ダウンロード）
-    if "excel_bytes" not in st.session_state:
-        if st.button("📊 作業指示書Excelを生成してダウンロード", type="primary", use_container_width=True):
-            with st.spinner("Excel作業指示書を生成中..."):
-                st.session_state["excel_bytes"] = generate_workbook(df)
+    # 外注先別ZIP（メイン推奨）
+    if "vendor_zip_bytes" not in st.session_state:
+        if st.button("📦 外注先別Excelをダウンロード（ZIP）", type="primary", use_container_width=True,
+                     help="東京製版・永江印祥堂・アシール等の外注先ごとにExcelファイルを生成しZIPにまとめます"):
+            with st.spinner("外注先別Excel作業指示書を生成中..."):
+                st.session_state["vendor_zip_bytes"] = generate_vendor_zip(df)
             st.rerun()
     else:
         st.download_button(
-            label="📥 作業指示書Excel をダウンロード（推奨）",
-            data=st.session_state["excel_bytes"],
-            file_name=generate_filename("作業指示書", "xlsx"),
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            label="📥 外注先別Excel（ZIP）をダウンロード",
+            data=st.session_state["vendor_zip_bytes"],
+            file_name=generate_filename("外注先別", "zip"),
+            mime="application/zip",
             use_container_width=True,
             type="primary",
         )
 
-    # その他のダウンロード
-    with st.expander("その他のダウンロード（CSV / ZIP）"):
+    # 全体Excel（1ファイル版）
+    with st.expander("その他のダウンロード（全体Excel / CSV）"):
+        if "excel_bytes" not in st.session_state:
+            if st.button("📊 全体Excel（1ファイル）を生成"):
+                with st.spinner("Excel作業指示書を生成中..."):
+                    st.session_state["excel_bytes"] = generate_workbook(df)
+                st.rerun()
+        else:
+            st.download_button(
+                label="📥 全体Excel（1ファイル）",
+                data=st.session_state["excel_bytes"],
+                file_name=generate_filename("作業指示書", "xlsx"),
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True,
+            )
+
         dl_col1, dl_col2 = st.columns(2)
         with dl_col1:
             zip_bytes = to_zip_bytes(categories)

@@ -516,3 +516,81 @@ def _write_summary(wb: Workbook, summary_data: list):
     ws.column_dimensions["A"].width = 35
     ws.column_dimensions["B"].width = 10
     ws.column_dimensions["C"].width = 12
+
+
+def generate_vendor_workbooks(df: pd.DataFrame) -> dict:
+    """外注先別にExcelを生成して辞書で返す。
+
+    Returns:
+        dict[str, bytes]: {外注先名: Excelバイト列}
+    """
+    vendor_config = load_json("vendor_mapping.json")
+    vendors = vendor_config.get("vendors", {})
+
+    # 各行に出力シート名と製品カテゴリを付与
+    df = df.copy()
+    df["_出力シート"] = df.apply(_resolve_sheet_name, axis=1)
+
+    results = {}
+
+    for vendor_name, vendor_def in vendors.items():
+        cats_rakuten = set(vendor_def.get("categories_rakuten", []))
+        cats_amazon = set(vendor_def.get("categories_amazon", []))
+
+        # 楽天/Yahoo!: _出力シート名でフィルタ
+        mask_rakuten = (
+            (df.get("ソース", pd.Series(dtype=str)) != "amazon")
+            & df["_出力シート"].isin(cats_rakuten)
+        ) if cats_rakuten else pd.Series(False, index=df.index)
+
+        # Amazon: 製品カテゴリでフィルタ
+        mask_amazon = (
+            (df.get("ソース", pd.Series(dtype=str)) == "amazon")
+            & df["製品カテゴリ"].isin(cats_amazon)
+        ) if cats_amazon else pd.Series(False, index=df.index)
+
+        vendor_df = df[mask_rakuten | mask_amazon]
+
+        if len(vendor_df) == 0:
+            continue
+
+        # 既存のgenerate_workbookを流用してExcelを生成
+        wb_bytes = generate_workbook(vendor_df)
+        results[vendor_name] = wb_bytes
+
+    # 未割当データも出力（どの外注先にも属さない行）
+    all_assigned = pd.Series(False, index=df.index)
+    for vendor_name, vendor_def in vendors.items():
+        cats_r = set(vendor_def.get("categories_rakuten", []))
+        cats_a = set(vendor_def.get("categories_amazon", []))
+        mask_r = (
+            (df.get("ソース", pd.Series(dtype=str)) != "amazon")
+            & df["_出力シート"].isin(cats_r)
+        ) if cats_r else pd.Series(False, index=df.index)
+        mask_a = (
+            (df.get("ソース", pd.Series(dtype=str)) == "amazon")
+            & df["製品カテゴリ"].isin(cats_a)
+        ) if cats_a else pd.Series(False, index=df.index)
+        all_assigned = all_assigned | mask_r | mask_a
+
+    unassigned = df[~all_assigned]
+    if len(unassigned) > 0:
+        results["未割当"] = generate_workbook(unassigned)
+
+    return results
+
+
+def generate_vendor_zip(df: pd.DataFrame) -> bytes:
+    """外注先別ExcelをZIPにまとめてバイト列で返す。"""
+    import zipfile
+
+    vendor_workbooks = generate_vendor_workbooks(df)
+    today = datetime.now().strftime("%Y%m%d")
+
+    output = io.BytesIO()
+    with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as zf:
+        for vendor_name, wb_bytes in vendor_workbooks.items():
+            filename = f"{vendor_name}_{today}.xlsx"
+            zf.writestr(filename, wb_bytes)
+
+    return output.getvalue()
