@@ -568,6 +568,9 @@ def render_processing_page():
 
             if df is not None:
                 st.session_state["result_df"] = df
+                # 外注先別ZIP・全体Excelを処理完了時に自動生成（DL1クリック化）
+                with st.spinner("外注先別Excel作業指示書を生成中..."):
+                    st.session_state["vendor_zip_bytes"] = generate_vendor_zip(df)
                 # 履歴に保存（直近5件）
                 _save_to_history(df, uploaded_files)
         except Exception as e:
@@ -779,14 +782,8 @@ def render_results(df: pd.DataFrame):
     # ダウンロード
     st.header("3. ダウンロード")
 
-    # 外注先別ZIP（メイン推奨）
-    if "vendor_zip_bytes" not in st.session_state:
-        if st.button("📦 外注先別Excelをダウンロード（ZIP）", type="primary", use_container_width=True,
-                     help="東京製版・永江印祥堂・アシール等の外注先ごとにExcelファイルを生成しZIPにまとめます"):
-            with st.spinner("外注先別Excel作業指示書を生成中..."):
-                st.session_state["vendor_zip_bytes"] = generate_vendor_zip(df)
-            st.rerun()
-    else:
+    # 外注先別ZIP（メイン推奨）— 処理完了時に自動生成済み
+    if "vendor_zip_bytes" in st.session_state:
         st.download_button(
             label="📥 外注先別Excel（ZIP）をダウンロード",
             data=st.session_state["vendor_zip_bytes"],
@@ -795,12 +792,15 @@ def render_results(df: pd.DataFrame):
             use_container_width=True,
             type="primary",
         )
+    else:
+        st.info("「処理を実行」すると、ここにダウンロードボタンが表示されます。")
 
-    # 全体Excel（1ファイル版）
+    # その他のダウンロード
     with st.expander("その他のダウンロード（全体Excel / CSV）"):
+        # 全体Excel（オンデマンド生成）
         if "excel_bytes" not in st.session_state:
             if st.button("📊 全体Excel（1ファイル）を生成"):
-                with st.spinner("Excel作業指示書を生成中..."):
+                with st.spinner("全体Excel作業指示書を生成中..."):
                     st.session_state["excel_bytes"] = generate_workbook(df)
                 st.rerun()
         else:
