@@ -116,14 +116,19 @@ def _extract_font(text):
         return val
 
     # パターン7: 書体名が直接テキスト内にある（フリーテキスト対応）
-    font_names = ["楷書体", "明朝体", "古印体", "行書体", "隷書体", "てん書体",
-                  "印相体", "丸ゴシック体", "丸ゴシック", "ゴシック体", "クラフト体"]
+    # 長い名前から先にマッチさせる（「角ゴシック体」→「ゴシック体」の誤マッチ防止）
+    font_names = ["角ゴシック体", "丸ゴシック体", "楷書体", "明朝体", "古印体",
+                  "行書体", "隷書体", "てん書体", "印相体", "ゴシック体", "クラフト体"]
     for font in font_names:
         if font in text:
             return font
 
-    # パターン8: 「楷書」「明朝」など短縮形
-    short_fonts = {"楷書": "楷書体", "明朝": "明朝体", "古印": "古印体"}
+    # パターン8: 短縮形・typo対応
+    short_fonts = {
+        "角ゴシック": "角ゴシック体", "丸ゴシック": "丸ゴシック体",
+        "楷書": "楷書体", "明朝": "明朝体", "古印": "古印体",
+        "丸マジック": "丸ゴシック体",  # よくあるtypo
+    }
     for short, full in short_fonts.items():
         if short in text:
             return full
@@ -155,12 +160,14 @@ def _extract_creation_name(text):
         name = re.sub(r"[\s　]+", "", name) if len(name) <= 5 else re.sub(r"[\s　]+", " ", name).strip()
         return name
 
-    # パターン3: 彫刻名　　○○（全角スペース区切り）
-    match = re.search(r"(?:彫刻名|名入れ文字|名前)[：:\s　]+([^\s　【\n]+(?:[\s　][^\s　【\n]+)?)", text)
+    # パターン3: 彫刻名　○○ or 名前・○○ or 作成名:○○（区切り文字付き）
+    match = re.search(r"(?:彫刻名|名入れ文字|名前|作成名)[・：:\s　]+([^\s　【\n]+)", text)
     if match:
         name = match.group(1).strip()
         # 「書体」等の次の項目名が混入していないか
-        name = re.split(r"(?:書体|字体|文字)", name)[0].strip()
+        name = re.split(r"(?:書体|字体|文字|フォント)", name)[0].strip()
+        # 「】」「]」等の閉じ記号を除去
+        name = name.rstrip("】]）)")
         if name:
             return name
 
@@ -171,14 +178,21 @@ def _extract_creation_name(text):
         name = re.sub(r"[\s　]+", "", name)
         return name
 
-    # パターン5: 【彫刻名】○○ or 【作成名：○○】（コロンなし or 内部コロン）
-    match = re.search(r"【(?:彫刻名|名前|作成名)[：:]?([^】]+)】", text)
+    # パターン5: 【彫刻名 ○○】 or 【名前】○○ or 【作成名：○○】
+    match = re.search(r"【(?:彫刻名|名前|作成名)[\s　：:]*([^】]+)】", text)
     if match:
         name = match.group(1).strip()
-        name = re.split(r"(?:書体|字体|山が|です|カラー)", name)[0].strip()
+        name = re.split(r"(?:書体|字体|山が|です|カラー|フォント)", name)[0].strip()
         # コロンの後に名前がある場合
         if "：" in name or ":" in name:
             name = re.split(r"[：:]", name, 1)[-1].strip()
+        if name:
+            return name
+    # 【名前】の後に名前がある場合（括弧外）
+    match2 = re.search(r"【(?:彫刻名|名前|作成名)】\s*([^\s　【\n]+)", text)
+    if match2:
+        name = match2.group(1).strip().rstrip("】]）)")
+        name = re.split(r"(?:書体|字体|フォント)", name)[0].strip()
         if name:
             return name
 
