@@ -569,7 +569,17 @@ def generate_vendor_workbooks(df: pd.DataFrame) -> dict:
             df, vendor_def.get("conditional_categories", {}), source_col
         )
 
-        vendor_df = df[mask_rakuten_both | mask_yahoo | mask_amazon | mask_conditional]
+        # メモキーワード（ひとことメモに特定キーワードを含む行）
+        memo_keywords = vendor_def.get("memo_keywords", [])
+        mask_memo = pd.Series(False, index=df.index)
+        if memo_keywords and "ひとことメモ" in df.columns:
+            memo_col = df["ひとことメモ"].fillna("")
+            for kw in memo_keywords:
+                mask_memo = mask_memo | memo_col.str.contains(kw, na=False)
+            # 楽天/Yahoo!のみ
+            mask_memo = mask_memo & source_col.isin(["rakuten", "non_rakuten"])
+
+        vendor_df = df[mask_rakuten_both | mask_yahoo | mask_amazon | mask_conditional | mask_memo]
 
         if len(vendor_df) == 0:
             continue
@@ -600,7 +610,14 @@ def generate_vendor_workbooks(df: pd.DataFrame) -> dict:
         mask_cond = _build_conditional_mask(
             df, vendor_def.get("conditional_categories", {}), source_col
         )
-        all_assigned = all_assigned | mask_r | mask_y | mask_a | mask_cond
+        memo_kws = vendor_def.get("memo_keywords", [])
+        mask_memo = pd.Series(False, index=df.index)
+        if memo_kws and "ひとことメモ" in df.columns:
+            memo_c = df["ひとことメモ"].fillna("")
+            for kw in memo_kws:
+                mask_memo = mask_memo | memo_c.str.contains(kw, na=False)
+            mask_memo = mask_memo & source_col.isin(["rakuten", "non_rakuten"])
+        all_assigned = all_assigned | mask_r | mask_y | mask_a | mask_cond | mask_memo
 
     unassigned = df[~all_assigned]
     if len(unassigned) > 0:
