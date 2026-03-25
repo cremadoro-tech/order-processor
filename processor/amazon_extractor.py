@@ -33,22 +33,22 @@ def extract_amazon_attributes(options_text, product_name=""):
         "配置": "",
     }
 
-    if not options_text:
-        return result
+    text = options_text.strip() if options_text else ""
 
-    text = options_text.strip()
+    # === カラー抽出（商品名の括弧内。備考が空でも取得可能） ===
+    result["カラー"] = _extract_color(product_name)
+
+    # === サイズ抽出（商品名から。備考が空でも取得可能） ===
+    result["サイズ"] = _extract_size(product_name)
+
+    if not text:
+        return result
 
     # === 書体抽出 ===
     result["書体"] = _extract_font(text)
 
     # === 作成名抽出 ===
     result["作成名"] = _extract_creation_name(text)
-
-    # === カラー抽出（商品名の括弧内） ===
-    result["カラー"] = _extract_color(product_name)
-
-    # === サイズ抽出（商品名から） ===
-    result["サイズ"] = _extract_size(product_name)
 
     # === 配置抽出 ===
     result["配置"] = _extract_direction(text, product_name)
@@ -232,6 +232,27 @@ def _extract_creation_name(text):
                 if name and 1 <= len(name) <= 10 and re.search(r"[\u3040-\u309F\u4E00-\u9FFF]", name):
                     return name
             break
+
+    # パターン7b: 鉤括弧内の名前（「○○」で/と + 作成/お願い/縦/横）
+    match_kagi = re.search(r"[「『]([^」』]+)[」』](?:で|と)", text)
+    if match_kagi:
+        name = match_kagi.group(1).strip()
+        if name and 1 <= len(name) <= 10 and re.search(r"[\u3040-\u309F\u4E00-\u9FFF]", name):
+            return name
+
+    # パターン7c: 名入れ内容「○○」 or 名入れは『○○』
+    match_naire_kagi = re.search(r"名入れ[内容はを、　\s]*[「『]([^」』]+)[」』]", text)
+    if match_naire_kagi:
+        name = match_naire_kagi.group(1).strip()
+        if name and 1 <= len(name) <= 10:
+            return name
+
+    # パターン7d: 印鑑名入れ　○○（鉤括弧なし）
+    match_naire = re.search(r"(?:印鑑)?名入れ[\s　]+([^\s　\n「『]+)", text)
+    if match_naire:
+        name = match_naire.group(1).strip()
+        if name and 1 <= len(name) <= 10 and re.search(r"[\u3040-\u309F\u4E00-\u9FFF]", name):
+            return name
 
     # パターン8: 純粋フリーテキスト（名前 注文者名）書体キーワードなし
     # 最初のスペース区切りの単語を作成名とする
