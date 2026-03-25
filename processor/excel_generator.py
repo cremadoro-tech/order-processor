@@ -564,7 +564,12 @@ def generate_vendor_workbooks(df: pd.DataFrame) -> dict:
             & df["製品カテゴリ"].isin(cats_amazon)
         ) if cats_amazon else pd.Series(False, index=df.index)
 
-        vendor_df = df[mask_rakuten_both | mask_yahoo | mask_amazon]
+        # 条件付きカテゴリ（単品/複数で外注先が変わる）
+        mask_conditional = _build_conditional_mask(
+            df, vendor_def.get("conditional_categories", {}), source_col
+        )
+
+        vendor_df = df[mask_rakuten_both | mask_yahoo | mask_amazon | mask_conditional]
 
         if len(vendor_df) == 0:
             continue
@@ -592,13 +597,39 @@ def generate_vendor_workbooks(df: pd.DataFrame) -> dict:
             (source_col == "amazon")
             & df["製品カテゴリ"].isin(cats_a)
         ) if cats_a else pd.Series(False, index=df.index)
-        all_assigned = all_assigned | mask_r | mask_y | mask_a
+        mask_cond = _build_conditional_mask(
+            df, vendor_def.get("conditional_categories", {}), source_col
+        )
+        all_assigned = all_assigned | mask_r | mask_y | mask_a | mask_cond
 
     unassigned = df[~all_assigned]
     if len(unassigned) > 0:
         results["未割当"] = generate_workbook(unassigned)
 
     return results
+
+
+def _build_conditional_mask(df, conditional_categories, source_col):
+    """条件付きカテゴリのマスクを構築。
+
+    conditional_categories例:
+    {"おなまえスタンプ": {"単品複数": ["単品"]}}
+    → _出力シートが「おなまえスタンプ」かつ単品複数が「単品」の行のみマッチ
+    """
+    mask = pd.Series(False, index=df.index)
+    if not conditional_categories:
+        return mask
+
+    for sheet_name, conditions in conditional_categories.items():
+        sheet_mask = df["_出力シート"] == sheet_name
+        # 楽天/Yahoo!のみ（Amazonはcategories_amazonで別処理）
+        sheet_mask = sheet_mask & source_col.isin(["rakuten", "non_rakuten"])
+        for col_name, allowed_values in conditions.items():
+            if col_name in df.columns:
+                sheet_mask = sheet_mask & df[col_name].isin(allowed_values)
+        mask = mask | sheet_mask
+
+    return mask
 
 
 def generate_vendor_zip(df: pd.DataFrame) -> bytes:
