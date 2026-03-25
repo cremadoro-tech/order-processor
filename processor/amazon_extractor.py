@@ -467,9 +467,17 @@ def expand_multi_name_rows(row):
                 rows.append(new_row)
             return rows
 
-    # パターン3は過剰展開リスクが高いため無効化
-    # のべ台等の改行区切り名前は、パターン1c（作成名：形式）で対応済み
-    # 「名前のみの改行区切り」は自動判定が困難なため、手動確認推奨とする
+    # パターン3: 「1つ目は「姓」「名」\n2つ目は「姓」「名」」形式
+    numbered_items = re.findall(r"(?:\d+つ目|①|②|③|1st|2nd).*?「([^」]+)」.*?「([^」]+)」", options)
+    if len(numbered_items) >= 2:
+        rows = []
+        for sei, mei in numbered_items:
+            new_row = row.copy()
+            new_row["_expanded_name"] = f"{sei.strip()}　{mei.strip()}"
+            new_row["_expanded_font"] = ""
+            new_row["個数"] = "1"
+            rows.append(new_row)
+        return rows
 
     # 展開不要
     return [row]
