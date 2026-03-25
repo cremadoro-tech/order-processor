@@ -389,19 +389,32 @@ def expand_multi_name_rows(row):
     options = str(row.get("項目・選択肢", ""))
     product_name = str(row.get("商品名", ""))
 
-    # パターン1: 「名入れ文字：【○○】」が複数ある
+    # パターン1: 「名入れ文字：【○○】」が複数ある、または1つでもスラッシュ区切りで複数名
     names = re.findall(r"名入れ文字[：:]\s*【([^】]+)】", options)
-    if len(names) >= 2:
+    has_slash = any("/" in n or "／" in n for n in names)
+    if len(names) >= 2 or (len(names) == 1 and has_slash):
         # 書体も各行から取得
         fonts = re.findall(r"【([^】]*体)】", options)
         rows = []
         for i, name in enumerate(names):
-            new_row = row.copy()
-            name_clean = re.sub(r"[\s　]+", "", name) if len(name) <= 5 else re.sub(r"[\s　]+", " ", name).strip()
-            new_row["_expanded_name"] = name_clean
-            new_row["_expanded_font"] = fonts[i] if i < len(fonts) else (fonts[0] if fonts else "")
-            new_row["個数"] = "1"
-            rows.append(new_row)
+            # スラッシュ区切りで複数名が入っている場合は分割
+            if "/" in name or "／" in name:
+                sub_names = re.split(r"[/／]", name)
+                for sn in sub_names:
+                    sn = sn.strip()
+                    if sn:
+                        new_row = row.copy()
+                        new_row["_expanded_name"] = sn
+                        new_row["_expanded_font"] = fonts[i] if i < len(fonts) else (fonts[0] if fonts else "")
+                        new_row["個数"] = "1"
+                        rows.append(new_row)
+            else:
+                new_row = row.copy()
+                name_clean = re.sub(r"[\s　]+", "", name) if len(name) <= 5 else re.sub(r"[\s　]+", " ", name).strip()
+                new_row["_expanded_name"] = name_clean
+                new_row["_expanded_font"] = fonts[i] if i < len(fonts) else (fonts[0] if fonts else "")
+                new_row["個数"] = "1"
+                rows.append(new_row)
         return rows
 
     # パターン1b: 「①作成名：岸田 ②作成名：富永...」の丸数字付きパターン
@@ -453,6 +466,10 @@ def expand_multi_name_rows(row):
                 new_row["個数"] = "1"
                 rows.append(new_row)
             return rows
+
+    # パターン3は過剰展開リスクが高いため無効化
+    # のべ台等の改行区切り名前は、パターン1c（作成名：形式）で対応済み
+    # 「名前のみの改行区切り」は自動判定が困難なため、手動確認推奨とする
 
     # 展開不要
     return [row]
