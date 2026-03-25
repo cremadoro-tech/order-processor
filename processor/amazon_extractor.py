@@ -374,6 +374,12 @@ def _shorten_product_name(product_name, category):
     """
     name = product_name
 
+    # 全角数字→半角数字に変換
+    zen = "０１２３４５６７８９"
+    han = "0123456789"
+    for z, h in zip(zen, han):
+        name = name.replace(z, h)
+
     # 「ハンコヤストア」「ハンコヤトア」を除去
     name = re.sub(r"ハンコヤ[スト]+ア\s*", "", name)
 
