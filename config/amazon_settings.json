@@ -1,0 +1,33 @@
+{
+  "_description": "Amazon専用の抽出・変換設定。UIから編集可能。",
+  "default_font": "楷書体",
+  "default_font_description": "備考に書体情報がない場合のデフォルト書体",
+  "use_orderer_fallback": true,
+  "use_orderer_fallback_description": "作成名が抽出できない場合、注文者氏名の姓をフォールバックとして使う",
+  "non_name_words": [
+    "ゆめかわ",
+    "ポップカー",
+    "ワーキングブルー",
+    "ドレミファイエロー",
+    "ナチュラルグレージュ",
+    "ベリーピンク",
+    "なし",
+    "undefined"
+  ],
+  "non_name_words_description": "転送エンジンのひらがな列から除外する既知のボックス名・非名前ワード",
+  "product_name_rules": {
+    "_description": "商品名短縮ルール。カテゴリ→{条件キーワード: 短縮名}",
+    "ジョインティ": {
+      "みました": "みましたジョインティ",
+      "6mm": "ジョインティ 6mm",
+      "_default": "ジョインティ 10mm"
+    },
+    "オスカ": {
+      "6mm": "オスカ6mm",
+      "_default": "オスカ10mm"
+    },
+    "のべ台": {
+      "_default": "ゴム印 科目印 氏名印"
+    }
+  }
+}

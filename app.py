@@ -83,7 +83,7 @@ def render_settings_page():
     if not is_writable():
         st.warning("Streamlit Cloud上のため、変更は一時的です。恒久反映はGitHub経由で行ってください。")
 
-    tab_names = ["パターン", "カテゴリ", "印鑑", "属性", "作成名", "シートレイアウト", "転送ルール"]
+    tab_names = ["パターン", "カテゴリ", "印鑑", "属性", "作成名", "Amazon", "外注先", "シートレイアウト", "転送ルール"]
     tabs = st.tabs(tab_names)
 
     with tabs[0]:
@@ -97,8 +97,12 @@ def render_settings_page():
     with tabs[4]:
         render_name_settings_page()
     with tabs[5]:
-        render_sheet_layout_page()
+        render_amazon_settings_page()
     with tabs[6]:
+        render_vendor_mapping_page()
+    with tabs[7]:
+        render_sheet_layout_page()
+    with tabs[8]:
         render_transfer_rules_page()
 
 
@@ -854,6 +858,118 @@ def render_results(df: pd.DataFrame):
 
                 # データプレビュー
                 st.dataframe(cat_df, use_container_width=True, height=400)
+
+
+def render_amazon_settings_page():
+    """Amazon抽出設定ページ"""
+    st.subheader("Amazon抽出設定")
+    st.caption("Amazon備考テキストからの書体・作成名・カラー等の抽出ルールを管理します")
+
+    data = load_json("amazon_settings.json")
+
+    # デフォルト書体
+    st.markdown("#### デフォルト書体")
+    st.info("備考に書体情報がない場合に使用される書体です。マクロと同じ動作にするには「楷書体」を設定してください。")
+    new_font = st.text_input("デフォルト書体", value=data.get("default_font", "楷書体"), key="amz_default_font")
+    if new_font != data.get("default_font"):
+        data["default_font"] = new_font
+        save_json("amazon_settings.json", data)
+        st.success(f"デフォルト書体を「{new_font}」に変更しました")
+
+    st.divider()
+
+    # 作成名フォールバック
+    st.markdown("#### 作成名フォールバック")
+    st.info("備考に作成名がない場合、注文者氏名の姓を作成名として使います。マクロと同じ動作です。")
+    use_fallback = st.checkbox(
+        "注文者姓をフォールバックとして使用",
+        value=data.get("use_orderer_fallback", True),
+        key="amz_fallback",
+    )
+    if use_fallback != data.get("use_orderer_fallback"):
+        data["use_orderer_fallback"] = use_fallback
+        save_json("amazon_settings.json", data)
+        st.success("設定を変更しました")
+
+    st.divider()
+
+    # ボックス名除外リスト
+    st.markdown("#### ボックス名除外リスト")
+    st.info("転送エンジンのひらがな列から除外するワード。ボックス名（ゆめかわ等）がひらがな列に混入するのを防ぎます。")
+    non_name = data.get("non_name_words", [])
+    for i, word in enumerate(non_name):
+        cols = st.columns([7, 1])
+        with cols[0]:
+            edited = st.text_input(f"除外ワード{i}", value=word, key=f"amz_nn_{i}", label_visibility="collapsed")
+            if edited != word:
+                data["non_name_words"][i] = edited
+        with cols[1]:
+            if st.button("🗑️", key=f"amz_nn_del_{i}"):
+                data["non_name_words"].pop(i)
+                save_json("amazon_settings.json", data)
+                st.rerun()
+
+    new_word = st.text_input("新しい除外ワードを追加", key="amz_nn_new", placeholder="例: ポップカー")
+    if st.button("追加", key="amz_nn_add") and new_word:
+        data.setdefault("non_name_words", []).append(new_word)
+        save_json("amazon_settings.json", data)
+        st.rerun()
+
+
+def render_vendor_mapping_page():
+    """外注先マッピング管理ページ"""
+    st.subheader("外注先マッピング")
+    st.caption("カテゴリ→外注先の対応を管理します。どのカテゴリがどの外注先に振り分けられるかを定義します。")
+
+    data = load_json("vendor_mapping.json")
+    vendors = data.get("vendors", {})
+
+    for vname, vdef in vendors.items():
+        with st.expander(f"**{vname}** — {vdef.get('description', '')}", expanded=False):
+            # 楽天カテゴリ
+            cats_r = vdef.get("categories_rakuten", [])
+            if cats_r:
+                st.markdown("**楽天/Yahoo!カテゴリ** （楽天+Yahoo!両方にマッチ）")
+                st.write(", ".join(cats_r))
+
+            # Yahoo!専用カテゴリ
+            cats_y = vdef.get("categories_yahoo", [])
+            if cats_y:
+                st.markdown("**Yahoo!/Qoo10専用カテゴリ** （Yahoo!のみマッチ、楽天は別外注先）")
+                st.write(", ".join(cats_y))
+
+            # Amazonカテゴリ
+            cats_a = vdef.get("categories_amazon", [])
+            if cats_a:
+                st.markdown(f"**Amazonカテゴリ** （{len(cats_a)}件）")
+                st.write(", ".join(cats_a[:20]) + ("..." if len(cats_a) > 20 else ""))
+
+            # 条件付きカテゴリ
+            cond = vdef.get("conditional_categories", {})
+            if cond:
+                st.markdown("**条件付きカテゴリ** （単品/複数で外注先が変わる）")
+                for cat, conditions in cond.items():
+                    for col, vals in conditions.items():
+                        st.write(f"  {cat}: {col} = {', '.join(vals)}")
+
+            # メモキーワード
+            memo_kw = vdef.get("memo_keywords", [])
+            if memo_kw:
+                st.markdown("**メモキーワード** （ひとことメモに含む行をマッチ）")
+                st.write(", ".join(memo_kw))
+
+            # 楽天カテゴリの編集
+            st.markdown("---")
+            new_cat = st.text_input(
+                f"楽天カテゴリを追加（{vname}）",
+                key=f"vm_add_r_{vname}",
+                placeholder="カテゴリ名を入力",
+            )
+            if st.button("追加", key=f"vm_add_r_btn_{vname}") and new_cat:
+                data["vendors"][vname].setdefault("categories_rakuten", []).append(new_cat)
+                save_json("vendor_mapping.json", data)
+                st.success(f"「{new_cat}」を{vname}の楽天カテゴリに追加しました")
+                st.rerun()
 
 
 def render_patterns_page():

@@ -14,6 +14,13 @@ Amazonの備考欄（「23:59:59」以降のフリーテキスト）から、
 """
 
 import re
+from config.settings_io import load_json
+
+_AMAZON_SETTINGS_FILE = "amazon_settings.json"
+
+
+def _get_amazon_settings():
+    return load_json(_AMAZON_SETTINGS_FILE)
 
 
 def extract_amazon_attributes(options_text, product_name="", orderer_name=""):
@@ -42,17 +49,21 @@ def extract_amazon_attributes(options_text, product_name="", orderer_name=""):
     # === サイズ抽出（商品名から。備考が空でも取得可能） ===
     result["サイズ"] = _extract_size(product_name)
 
+    settings = _get_amazon_settings()
+    default_font = settings.get("default_font", "楷書体")
+    use_fallback = settings.get("use_orderer_fallback", True)
+
     if not text:
-        # 備考空の場合: デフォルト書体「楷書体」、作成名は注文者姓
-        result["書体"] = "楷書体"
-        result["作成名"] = _extract_sei_from_orderer(orderer_name)
+        result["書体"] = default_font
+        result["作成名"] = _extract_sei_from_orderer(orderer_name) if use_fallback else ""
         return result
 
     # === 書体抽出 ===
-    result["書体"] = _extract_font(text) or "楷書体"  # デフォルト楷書体
+    result["書体"] = _extract_font(text) or default_font
 
     # === 作成名抽出 ===
-    result["作成名"] = _extract_creation_name(text) or _extract_sei_from_orderer(orderer_name)
+    extracted_name = _extract_creation_name(text)
+    result["作成名"] = extracted_name or (_extract_sei_from_orderer(orderer_name) if use_fallback else "")
 
     # === 配置抽出 ===
     result["配置"] = _extract_direction(text, product_name)

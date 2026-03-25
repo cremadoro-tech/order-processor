@@ -353,10 +353,10 @@ def _method3_transfer20(tracker, remove_parts):
     return "\n".join(result_lines)
 
 
-_KNOWN_NON_NAME_WORDS = {
-    "ゆめかわ", "ポップカー", "ワーキングブルー", "ドレミファイエロー",
-    "ナチュラルグレージュ", "ベリーピンク", "なし", "undefined",
-}
+def _get_non_name_words():
+    from config.settings_io import load_json
+    settings = load_json("amazon_settings.json")
+    return set(settings.get("non_name_words", []))
 
 
 def _method3_transfer21(tracker, char_type):
@@ -372,7 +372,7 @@ def _method3_transfer21(tracker, char_type):
         if not stripped:
             continue
         # ボックス名・既知の非名前ワードを除外
-        if stripped in _KNOWN_NON_NAME_WORDS:
+        if stripped in _get_non_name_words():
             continue
 
         detected = _detect_char_type_simple(stripped)
