@@ -118,18 +118,19 @@ def generate_workbook(df: pd.DataFrame) -> bytes:
         if has_amazon:
             amazon_group = group[group.get("ソース") == "amazon"]
 
-            # 複数名入れの行展開（同一管理番号は1回だけ展開）
+            # 複数名入れの行展開
+            # 同一管理番号+同一出力シートの組み合わせでは1回だけ展開
+            # （同一注文に複数SKUがあっても備考テキストは同じため）
             expanded_rows = []
-            expanded_goqs = set()  # 展開済み管理番号
+            expanded_keys = set()
             for _, row in amazon_group.iterrows():
                 goq = str(row.get("GoQ管理番号", ""))
-                opts = str(row.get("項目・選択肢", ""))
                 result_rows = expand_multi_name_rows(row)
                 if len(result_rows) > 1:
-                    # 複数行に展開される場合、同一管理番号は最初の1回だけ
-                    if goq and goq in expanded_goqs:
-                        continue  # この管理番号は既に展開済み→スキップ
-                    expanded_goqs.add(goq)
+                    key = (goq, sheet_base)
+                    if key in expanded_keys:
+                        continue
+                    expanded_keys.add(key)
                 expanded_rows.extend(result_rows)
             amazon_group = pd.DataFrame(expanded_rows).fillna("").reset_index(drop=True)
 
