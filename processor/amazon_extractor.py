@@ -404,6 +404,32 @@ def expand_multi_name_rows(row):
             rows.append(new_row)
         return rows
 
+    # パターン1b: 「①作成名：岸田 ②作成名：富永...」の丸数字付きパターン
+    numbered_names = re.findall(r"[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳]作成名[：:]([^\s　①②③④⑤⑥⑦⑧⑨⑩×]+)", options)
+    if len(numbered_names) >= 2:
+        rows = []
+        for name in numbered_names:
+            new_row = row.copy()
+            new_row["_expanded_name"] = name.strip()
+            new_row["_expanded_font"] = ""
+            new_row["個数"] = "1"
+            rows.append(new_row)
+        return rows
+
+    # パターン1c: 改行区切りの「作成名：○○ 書体：△△」が複数ある
+    lines_with_name = re.findall(r"作成名[：:]\s*([^\s　\n×]+)(?:.*?書体[：:]\s*([^\s　\n]+))?", options)
+    if len(lines_with_name) >= 2:
+        rows = []
+        for match in lines_with_name:
+            name = match[0].strip()
+            font = match[1].strip() if match[1] else ""
+            new_row = row.copy()
+            new_row["_expanded_name"] = name
+            new_row["_expanded_font"] = font
+            new_row["個数"] = "1"
+            rows.append(new_row)
+        return rows
+
     # パターン2: 個数>1 かつ スペース区切りで名前が並んでいる
     try:
         qty = int(float(str(row.get("個数", "1"))))
