@@ -134,6 +134,13 @@ def _dispatch_rule(rule, order_row, tracker, row_number):
         return _method2_fixed(rule.get("fixed_value", ""))
     elif method == 3:
         source_col = rule.get("source_col", "")
+        # 正規化後のカラム名にフォールバック
+        if source_col and source_col not in order_row.index:
+            col_aliases = {
+                "GoQ管理番号(三桁ハイフン区切り)": "GoQ管理番号",
+                "GoQ管理番号(カスタム)": "GoQ管理番号",
+            }
+            source_col = col_aliases.get(source_col, source_col)
         source_text = str(order_row.get(source_col, "")) if source_col else ""
         keywords = rule.get("search_keywords", [])
 
