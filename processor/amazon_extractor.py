@@ -16,12 +16,13 @@ Amazonの備考欄（「23:59:59」以降のフリーテキスト）から、
 import re
 
 
-def extract_amazon_attributes(options_text, product_name=""):
+def extract_amazon_attributes(options_text, product_name="", orderer_name=""):
     """Amazon備考欄から書体・カラー・作成名等を抽出する。
 
     Args:
         options_text: normalizer.pyで抽出された「項目・選択肢」（=備考の23:59:59以降）
         product_name: 商品名（サイズ・カラー判定に使用）
+        orderer_name: 注文者氏名（作成名フォールバック用）
     Returns:
         dict: {"書体": "楷書体", "作成名": "田中", "カラー": "ブラック", ...}
     """
@@ -42,18 +43,36 @@ def extract_amazon_attributes(options_text, product_name=""):
     result["サイズ"] = _extract_size(product_name)
 
     if not text:
+        # 備考空の場合: デフォルト書体「楷書体」、作成名は注文者姓
+        result["書体"] = "楷書体"
+        result["作成名"] = _extract_sei_from_orderer(orderer_name)
         return result
 
     # === 書体抽出 ===
-    result["書体"] = _extract_font(text)
+    result["書体"] = _extract_font(text) or "楷書体"  # デフォルト楷書体
 
     # === 作成名抽出 ===
-    result["作成名"] = _extract_creation_name(text)
+    result["作成名"] = _extract_creation_name(text) or _extract_sei_from_orderer(orderer_name)
 
     # === 配置抽出 ===
     result["配置"] = _extract_direction(text, product_name)
 
     return result
+
+
+def _extract_sei_from_orderer(orderer_name):
+    """注文者氏名から姓を抽出する。
+
+    例: "田中太郎" → "田中", "山田 花子" → "山田"
+    """
+    if not orderer_name:
+        return ""
+    name = str(orderer_name).strip()
+    # スペース区切りの場合は姓（前半）を取得
+    parts = re.split(r"[\s　]+", name)
+    if parts:
+        return parts[0]
+    return name
 
 
 def _extract_font(text):
@@ -363,11 +382,15 @@ def _shorten_product_name(product_name, category):
 
     # カテゴリ別の短縮
     if category in ("ジョインティ", "jyoin-10"):
+        # 「みました」付きジョインティ
+        if "みました" in name:
+            return "みましたジョインティ"
         match = re.search(r"ジョインティ.*?(\d+)\s*mm", name)
         if match:
             return f"ジョインティ {match.group(1)}mm"
+        # 全角数字対応
         if "ジョインティ" in name or "Ｊ9" in name or "J9" in name:
-            if "6mm" in name or "６mm" in name:
+            if "6mm" in name or "６mm" in name or "6ｍｍ" in name or "６ｍｍ" in name:
                 return "ジョインティ 6mm"
             return "ジョインティ 10mm"
 

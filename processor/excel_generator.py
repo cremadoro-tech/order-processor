@@ -246,7 +246,9 @@ def _write_sheet(
                 _opts = "" if pd.isna(_opts) else str(_opts)
                 _pname = data_row.get("商品名", "")
                 _pname = "" if pd.isna(_pname) else str(_pname)
-                amazon_attrs = extract_amazon_attributes(_opts, _pname)
+                _orderer = data_row.get("注文者氏名", "")
+                _orderer = "" if pd.isna(_orderer) else str(_orderer)
+                amazon_attrs = extract_amazon_attributes(_opts, _pname, _orderer)
                 product_cat = str(data_row.get("製品カテゴリ", "") or "")
                 short_name = _shorten_product_name(_pname, product_cat)
 
