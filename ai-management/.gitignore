@@ -31,3 +31,4 @@ scripts/package-lock.json
 
 # アーカイブ（自動退避先）
 archive/
+.cookies/
