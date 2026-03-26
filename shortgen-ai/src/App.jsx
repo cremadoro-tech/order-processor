@@ -44,12 +44,12 @@ async function getFirebaseAuth() {
     await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
 
   const firebaseConfig = {
-    apiKey: "AIzaSyCSxYGAlNvRQaxlDeaH4FguphZexEH7UbI",
-    authDomain: "shortgen-ai.firebaseapp.com",
-    projectId: "shortgen-ai",
-    storageBucket: "shortgen-ai.firebasestorage.app",
-    messagingSenderId: "732701913605",
-    appId: "1:732701913605:web:5d71fa162cdd4b711f226c",
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID,
   };
   const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
   _firebaseAuth = getAuth(app);

@@ -1,0 +1,13 @@
+[
+  { "name": "order_number",    "type": "STRING",    "mode": "REQUIRED", "description": "楽天注文番号" },
+  { "name": "order_date_jst",  "type": "DATE",      "mode": "REQUIRED", "description": "注文日 (JST, パーティション用)" },
+  { "name": "package_id",      "type": "STRING",    "mode": "NULLABLE", "description": "パッケージID（配送単位）" },
+  { "name": "item_id",         "type": "STRING",    "mode": "REQUIRED", "description": "商品番号 (RMS管理番号)" },
+  { "name": "item_name",       "type": "STRING",    "mode": "NULLABLE", "description": "商品名" },
+  { "name": "item_option",     "type": "STRING",    "mode": "NULLABLE", "description": "商品オプション（カラー・サイズ等）" },
+  { "name": "unit_price",      "type": "INTEGER",   "mode": "NULLABLE", "description": "販売単価（税込）" },
+  { "name": "quantity",        "type": "INTEGER",   "mode": "NULLABLE", "description": "注文数量" },
+  { "name": "item_total",      "type": "INTEGER",   "mode": "NULLABLE", "description": "商品合計金額 (unit_price × quantity)" },
+  { "name": "point_amount",    "type": "INTEGER",   "mode": "NULLABLE", "description": "付与ポイント数" },
+  { "name": "inserted_at",     "type": "TIMESTAMP", "mode": "REQUIRED", "description": "BigQuery書き込み日時" }
+]

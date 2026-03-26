@@ -1,0 +1,20 @@
+{
+  "name": "daily-report-system",
+  "version": "1.0.0",
+  "description": "Slack memo to daily/weekly/monthly report automation system",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@slack/bolt": "^4.1.0",
+    "quickchart-js": "^3.1.0",
+    "dotenv": "^16.4.0",
+    "googleapis": "^144.0.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}

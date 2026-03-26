@@ -1,0 +1,23 @@
+[
+  {
+    "id": "test-1",
+    "memo": "広告費集計50%\n平岩さんMTG\nAmazon商品登録レクチャー\n楽天AI自動化テスト進めた\n売上集計自動化80%くらい",
+    "expected_highlight": "楽天AI自動化テストを進めた",
+    "expected_not_contain": ["重点的に実施", "大幅に前進", "技術的見通し", "極めて高い"],
+    "expected_issues": "特になし"
+  },
+  {
+    "id": "test-2",
+    "memo": "名入れシールの在庫確認\nYahoo商品ページ更新3件",
+    "expected_highlight_max_length": 30,
+    "expected_not_contain": ["戦略的に", "効率化を推進", "最適化"],
+    "expected_issues": "特になし"
+  },
+  {
+    "id": "test-3",
+    "memo": "RPP広告の予算見直し\n課題: CTRが先月比で下がっている\nモリカワさんと打ち合わせ\n明日: 広告レポートまとめ",
+    "expected_issues_not_empty": true,
+    "expected_issues_source": "メモに記載あり",
+    "expected_tomorrow": "広告レポートまとめ"
+  }
+]

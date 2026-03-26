@@ -1,0 +1,17 @@
+[
+  { "name": "order_number",      "type": "STRING",    "mode": "REQUIRED", "description": "楽天注文番号 (例: 232996-20260313-XXXXX)" },
+  { "name": "order_date",        "type": "TIMESTAMP", "mode": "REQUIRED", "description": "注文日時 (JST)" },
+  { "name": "order_date_jst",    "type": "DATE",      "mode": "REQUIRED", "description": "注文日 (JST, パーティション用)" },
+  { "name": "order_progress",    "type": "INTEGER",   "mode": "NULLABLE", "description": "注文ステータス (100=注文確認待, 200=楽天処理中, 300=発送待, 400=発送済, 500=支払手続中, 600=支払完了, 700=キャンセル確認待, 800=キャンセル完了)" },
+  { "name": "customer_id",       "type": "STRING",    "mode": "NULLABLE", "description": "楽天会員ID (購入者)" },
+  { "name": "subtotal_price",    "type": "INTEGER",   "mode": "NULLABLE", "description": "商品合計金額（税込）" },
+  { "name": "postage",           "type": "INTEGER",   "mode": "NULLABLE", "description": "送料" },
+  { "name": "charge",            "type": "INTEGER",   "mode": "NULLABLE", "description": "手数料（代引き等）" },
+  { "name": "total_price",       "type": "INTEGER",   "mode": "NULLABLE", "description": "注文合計金額" },
+  { "name": "point_used",        "type": "INTEGER",   "mode": "NULLABLE", "description": "使用ポイント数" },
+  { "name": "coupon_discount",   "type": "INTEGER",   "mode": "NULLABLE", "description": "クーポン割引額" },
+  { "name": "settlement_name",   "type": "STRING",    "mode": "NULLABLE", "description": "支払い方法名（クレジットカード・コンビニ等）" },
+  { "name": "delivery_pref",     "type": "STRING",    "mode": "NULLABLE", "description": "配送先都道府県" },
+  { "name": "is_new_customer",   "type": "BOOLEAN",   "mode": "NULLABLE", "description": "新規顧客フラグ（楽天が提供する場合のみ）" },
+  { "name": "inserted_at",       "type": "TIMESTAMP", "mode": "REQUIRED", "description": "BigQuery書き込み日時" }
+]

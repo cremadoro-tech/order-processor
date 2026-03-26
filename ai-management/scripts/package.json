@@ -14,7 +14,11 @@
     "ec:qoo10": "node ec/scrapers/qoo10.js",
     "nint": "node nint/index.js",
     "login": "node ec/login-helper.js",
-    "rakuten:genre": "node ec/utils/rakuten-genre.js"
+    "rakuten:genre": "node ec/utils/rakuten-genre.js",
+    "rakuten:sync": "node rakuten-api/sync.mjs",
+    "rakuten:sync:yesterday": "node rakuten-api/sync.mjs",
+    "rakuten:sync:history": "node rakuten-api/sync.mjs --start 2026-01-01",
+    "rakuten:sync:dry": "node rakuten-api/sync.mjs --dry-run"
   },
   "dependencies": {
     "playwright": "^1.50.0",

@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \":*)",
+      "Bash(node -p \"const t=JSON.parse\\(require\\(''fs''\\).readFileSync\\(''/Users/emizukami/My WorkSpace/ai-management/scripts/.cookies/google-token.json'',''utf-8''\\)\\); console.log\\(''expiry:'', new Date\\(t.expiry_date\\).toISOString\\(\\)\\); console.log\\(''expired:'', Date.now\\(\\) > t.expiry_date\\); console.log\\(''scope:'', t.scope\\); console.log\\(''has_refresh:'', !!t.refresh_token\\);\")",
+      "Bash(node -e \"console.log\\(new Date\\(1772847518968\\).toISOString\\(\\), ''/ expired:'', Date.now\\(\\) > 1772847518968\\)\")",
+      "Bash(node refresh_token.mjs)",
+      "Bash(node ec/utils/rakuten-genre.js \"スタンプ台\" --verbose)",
+      "Bash(node ec/utils/rakuten-genre.js \"万年筆\")",
+      "Bash(node ec/utils/rakuten-genre.js \"ファイル\")"
+    ],
+    "additionalDirectories": [
+      "/Users/emizukami/.claude/projects/-Users-emizukami-My-WorkSpace"
+    ]
+  }
+}

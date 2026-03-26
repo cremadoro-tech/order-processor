@@ -17,6 +17,7 @@ config({ path: join(dirname(fileURLToPath(import.meta.url)), '../../.env') });
 
 import { launchBrowser, saveCookies, isLoggedIn } from '../ec/utils/browser.js';
 import { logger } from '../ec/utils/logger.js';
+import { writeNintDataToBigQuery } from './nint-bigquery-writer.mjs';
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import dayjs from 'dayjs';
 
@@ -242,9 +243,13 @@ export async function runNintScraper() {
       `トレンドキーワード: ${reportData.trends.slice(0, 3).join('、') || '取得中'}`,
     ];
 
-    // レポートを保存
+    // レポートを保存（Markdown）
     const filepath = saveReport(reportData, today);
     logger.success(SITE, `レポートを保存しました: ${filepath}`);
+
+    // BigQueryに書き込み
+    const bqResult = await writeNintDataToBigQuery(reportData);
+    logger.success(SITE, `BigQuery: ランキング${bqResult.rankingsWritten}件 / トレンド${bqResult.trendsWritten}件`);
 
     console.log('\n📊 Nintレポート生成完了');
     console.log(`保存先: ${filepath}`);
