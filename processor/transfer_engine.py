@@ -65,6 +65,10 @@ def apply_transfer_rules(order_row, sheet_name, row_number=1):
 
         value = _dispatch_rule(rule, order_row, tracker, row_number)
 
+        # _で始まるヘッダーは内部用（行消費専用等）→ 結果に含めない
+        if header.startswith("_"):
+            continue
+
         # 同じヘッダーに複数ルールがある場合（転送方法2の変換マッピング等）
         # 値が空でなければ上書き、空なら既存値を保持
         if value:
@@ -85,7 +89,7 @@ def get_headers_for_sheet(sheet_name):
     headers = []
     for rule in rules[sheet_name].get("columns", []):
         h = rule.get("header", "")
-        if h and h not in seen:
+        if h and h not in seen and not h.startswith("_"):
             headers.append(h)
             seen.add(h)
     return headers
