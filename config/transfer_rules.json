@@ -16026,45 +16026,419 @@
           "method": 3,
           "sort": "",
           "source_col": "項目・選択肢",
-          "transfer": 1,
+          "transfer": 2,
           "search_keywords": [
-            "ブルー",
-            "ホワイト",
-            "ブラック",
-            "ピンク",
-            "スケルトン",
-            "マルン",
-            "ゴールド",
-            "シルバー",
-            "ハンコヤイエロー",
-            "ハンコヤグリーン",
-            "ハンコヤパープル",
-            "ピース",
-            "リラックス",
-            "ブラウン",
-            "アイボリー",
-            "ドラえもん",
-            "サクラ",
-            "キキョウ",
-            "ウメ",
-            "モミジ",
-            "安室透",
-            "灰原哀",
-            "江戸川コナン",
-            "工藤新一",
-            "怪盗キッド",
-            "ソリッドホワイト",
-            "ロー",
-            "サンジ",
-            "エース",
-            "ゾロ",
-            "ルフィ",
-            "フライングエース",
-            "ハウス",
-            "ハグ",
+            "ブルー"
+          ],
+          "transform_value": "ブルー"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "ホワイト"
+          ],
+          "transform_value": "ホワイト"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "ブラック"
+          ],
+          "transform_value": "ブラック"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "ピンク"
+          ],
+          "transform_value": "ピンク"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "スケルトン"
+          ],
+          "transform_value": "スケルトン"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "マルン"
+          ],
+          "transform_value": "マルン"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "ゴールド"
+          ],
+          "transform_value": "ゴールド"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "シルバー"
+          ],
+          "transform_value": "シルバー"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "ハンコヤイエロー"
+          ],
+          "transform_value": "ハンコヤイエロー"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "ハンコヤグリーン"
+          ],
+          "transform_value": "ハンコヤグリーン"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "ハンコヤパープル"
+          ],
+          "transform_value": "ハンコヤパープル"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "ピース"
+          ],
+          "transform_value": "ピース"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "リラックス"
+          ],
+          "transform_value": "リラックス"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "ブラウン"
+          ],
+          "transform_value": "ブラウン"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "アイボリー"
+          ],
+          "transform_value": "アイボリー"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "ドラえもん"
+          ],
+          "transform_value": "ドラえもん"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "サクラ"
+          ],
+          "transform_value": "サクラ"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "キキョウ"
+          ],
+          "transform_value": "キキョウ"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "ウメ"
+          ],
+          "transform_value": "ウメ"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "モミジ"
+          ],
+          "transform_value": "モミジ"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "安室透"
+          ],
+          "transform_value": "安室透"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "灰原哀"
+          ],
+          "transform_value": "灰原哀"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "江戸川コナン"
+          ],
+          "transform_value": "江戸川コナン"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "工藤新一"
+          ],
+          "transform_value": "工藤新一"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "怪盗キッド"
+          ],
+          "transform_value": "怪盗キッド"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "ソリッドホワイト"
+          ],
+          "transform_value": "ソリッドホワイト"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "ロー"
+          ],
+          "transform_value": "ロー"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "サンジ"
+          ],
+          "transform_value": "サンジ"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "エース"
+          ],
+          "transform_value": "エース"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "ゾロ"
+          ],
+          "transform_value": "ゾロ"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "ルフィ"
+          ],
+          "transform_value": "ルフィ"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "フライングエース"
+          ],
+          "transform_value": "フライングエース"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "ハウス"
+          ],
+          "transform_value": "ハウス"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "ハグ"
+          ],
+          "transform_value": "ハグ"
+        },
+        {
+          "output_col": "C",
+          "header": "カラー",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
             "マロン"
           ],
-          "fixed_value": "1"
+          "transform_value": "マロン"
         },
         {
           "output_col": "C",
@@ -16111,6 +16485,19 @@
           "transform_value": "楷書体"
         },
         {
+          "output_col": "D",
+          "header": "書体",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "9mm浸透 楷書体",
+            "9mm浸透楷書体"
+          ],
+          "transform_value": "楷書体"
+        },
+        {
           "output_col": "E",
           "header": "インク",
           "method": 3,
@@ -16140,6 +16527,34 @@
             "インク色:黒"
           ],
           "transform_value": "黒"
+        },
+        {
+          "output_col": "E",
+          "header": "インク",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "インクカラー:朱",
+            "インク色:朱色",
+            "インク色=朱色",
+            "インク色:朱",
+            "インク色=朱"
+          ],
+          "transform_value": "朱色"
+        },
+        {
+          "output_col": "E",
+          "header": "インク",
+          "method": 3,
+          "sort": "",
+          "source_col": "項目・選択肢",
+          "transfer": 2,
+          "search_keywords": [
+            "インク朱"
+          ],
+          "transform_value": "朱色"
         },
         {
           "output_col": "E",

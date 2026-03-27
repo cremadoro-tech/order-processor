@@ -289,7 +289,10 @@
       ],
       "split_by": null,
       "delivery_rakuten": "",
-      "delivery_amazon": ""
+      "delivery_amazon": "",
+      "categories_yahoo": [
+        "タニエバー"
+      ]
     },
     "ペンペン": {
       "description": "名入れ鉛筆（ペンペンブランド）",

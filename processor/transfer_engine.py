@@ -395,7 +395,12 @@ def _method3_transfer22(tracker, target_line_number):
     remaining = tracker.get_remaining_lines()
     idx = (target_line_number or 1) - 1  # 1-based→0-based
     if 0 <= idx < len(remaining):
-        return remaining[idx].strip()
+        val = remaining[idx].strip()
+        # 「作成名(...):値」「5mm...作成名(...):値」等のプレフィックスを除去して値だけ返す
+        if '作成名' in val and (':' in val or '=' in val):
+            sep = ':' if ':' in val else '='
+            val = val.split(sep, 1)[-1].strip()
+        return val
     return ""
 
 
