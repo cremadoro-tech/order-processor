@@ -43,8 +43,8 @@ def extract_amazon_attributes(options_text, product_name="", orderer_name=""):
 
     text = options_text.strip() if options_text else ""
 
-    # === カラー抽出（商品名の括弧内。備考が空でも取得可能） ===
-    result["カラー"] = _extract_color(product_name)
+    # === カラー抽出（備考テキスト内を優先、フォールバックで商品名括弧内） ===
+    result["カラー"] = _extract_color_from_text(options_text) or _extract_color(product_name)
 
     # === サイズ抽出（商品名から。備考が空でも取得可能） ===
     result["サイズ"] = _extract_size(product_name)
@@ -76,15 +76,31 @@ def extract_amazon_attributes(options_text, product_name="", orderer_name=""):
 def _extract_sei_from_orderer(orderer_name):
     """注文者氏名から姓を抽出する。
 
-    例: "田中太郎" → "田中", "山田 花子" → "山田"
+    例: "田中 太郎" → "田中", "山田 花子" → "山田"
+         "和田サヤカ" → "和田", "田中太郎" → "田中"
     """
     if not orderer_name:
         return ""
     name = str(orderer_name).strip()
     # スペース区切りの場合は姓（前半）を取得
     parts = re.split(r"[\s　]+", name)
-    if parts:
+    if len(parts) >= 2:
         return parts[0]
+    # スペースなしの場合: 漢字→カタカナ/ひらがな境界 or 2-3文字目で分割
+    # 漢字+カタカナ（「和田サヤカ」）
+    m = re.match(r"([\u4E00-\u9FFF]+)([\u30A0-\u30FF]+)", name)
+    if m:
+        return m.group(1)
+    # 漢字+ひらがな（「田中はなこ」）
+    m = re.match(r"([\u4E00-\u9FFF]+)([\u3040-\u309F]+)", name)
+    if m and len(m.group(1)) >= 2:
+        return m.group(1)
+    # 漢字のみ（「田中太郎」→ 先頭2文字を姓と推定、「野々垣里沙」→3文字）
+    if re.match(r"^[\u4E00-\u9FFF々]+$", name) and len(name) >= 3:
+        # 「々」を含む3文字姓（「野々垣」「佐々木」等）
+        if len(name) >= 4 and name[1] == '々':
+            return name[:3]
+        return name[:2]
     return name
 
 
@@ -203,6 +219,13 @@ def _extract_creation_name(text):
     - 彫刻名　　宮本
     - 名前:辻本しんにょう1点
     """
+    # パターン0: カンマ区切り（「作成名、小熊」「彫刻名、田中」）
+    match = re.search(r"(?:彫刻名|作成名|名入れ文字|名前)[、,]\s*([^\s　、,]+)", text)
+    if match:
+        name = match.group(1).strip()
+        if name and 1 <= len(name) <= 10:
+            return name
+
     # パターン1: 【彫刻名：○○】 or 名入れ文字：【○○】
     match = re.search(r"(?:彫刻名|名入れ文字|作成名|名前)[：:]\s*【([^】]+)】", text)
     if match:
@@ -323,6 +346,52 @@ def _extract_creation_name(text):
             # 日本語の名前っぽいか（1〜5文字の漢字/ひらがな）
             if name and 1 <= len(name) <= 8 and re.search(r"[\u3040-\u309F\u4E00-\u9FFF]", name):
                 return name
+
+    return ""
+
+
+def _extract_color_from_text(text):
+    """備考テキストからカラー名を抽出する。
+
+    パターン:
+    - "本体カラー、スカイブルー"
+    - "カラー：ライムグリーン"
+    - 単独行でカラー名のみ（"ライムグリーン"）
+    """
+    if not text:
+        return ""
+    text = str(text).strip()
+
+    # パターン1: 「カラー」「本体カラー」等のラベル付き
+    m = re.search(r"(?:本体)?カラー[、,：:=]\s*(\S+)", text)
+    if m:
+        val = m.group(1).strip()
+        # 既知のカラー名と照合（長い名前から先にチェックして部分一致防止）
+        known_colors_ordered = [
+            "プレミアムブルー", "プレミアムレッド", "パステルブルー", "パステルイエロー",
+            "コーラルピンク", "ミントグリーン", "ローズピンク", "ハニーオレンジ",
+            "レモンイエロー", "ピュアホワイト", "スカイブルー", "スモーキーピンク",
+            "ライムグリーン", "ピアノブラック", "アッシュピンク", "アッシュグレー",
+            "ディープブルー", "ライトブルー", "ディープピンク", "ライトピンク",
+            "アイボリー", "ラベンダー", "グレージュ",
+            "ブラック", "ホワイト", "イエロー",
+        ]
+        for color in known_colors_ordered:
+            if color in val:
+                return color
+
+    # パターン2: テキスト内に単独でカラー名がある（長い固有名のみ、短い汎用名は除外）
+    # 短い名前（ブラック、ホワイト等）はパターン1のラベル付きのみで許可
+    specific_colors = sorted([
+        "アイボリー", "プレミアムブルー", "プレミアムレッド", "パステルブルー",
+        "パステルイエロー", "コーラルピンク", "ミントグリーン", "ラベンダー",
+        "ローズピンク", "グレージュ", "ハニーオレンジ", "レモンイエロー",
+        "ピュアホワイト", "スカイブルー", "スモーキーピンク", "ライムグリーン",
+        "ピアノブラック", "アッシュピンク", "アッシュグレー",
+    ], key=len, reverse=True)
+    for color in specific_colors:
+        if color in text:
+            return color
 
     return ""
 
