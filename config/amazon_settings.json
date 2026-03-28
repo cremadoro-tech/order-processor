@@ -2,6 +2,11 @@
   "_description": "Amazon専用の抽出・変換設定。UIから編集可能。",
   "default_font": "楷書体",
   "default_font_description": "備考に書体情報がない場合のデフォルト書体",
+  "category_default_font": {
+    "_description": "カテゴリ別デフォルト書体（default_fontより優先）",
+    "オリジナル分割印": "明朝体",
+    "original-bunkatsuin": "明朝体"
+  },
   "use_orderer_fallback": true,
   "use_orderer_fallback_description": "作成名が抽出できない場合、注文者氏名の姓をフォールバックとして使う",
   "non_name_words": [

@@ -23,13 +23,14 @@ def _get_amazon_settings():
     return load_json(_AMAZON_SETTINGS_FILE)
 
 
-def extract_amazon_attributes(options_text, product_name="", orderer_name=""):
+def extract_amazon_attributes(options_text, product_name="", orderer_name="", category=""):
     """Amazon備考欄から書体・カラー・作成名等を抽出する。
 
     Args:
         options_text: normalizer.pyで抽出された「項目・選択肢」（=備考の23:59:59以降）
         product_name: 商品名（サイズ・カラー判定に使用）
         orderer_name: 注文者氏名（作成名フォールバック用）
+        category: 製品カテゴリ（カテゴリ別デフォルト書体用）
     Returns:
         dict: {"書体": "楷書体", "作成名": "田中", "カラー": "ブラック", ...}
     """
@@ -44,22 +45,35 @@ def extract_amazon_attributes(options_text, product_name="", orderer_name=""):
     text = options_text.strip() if options_text else ""
 
     # === カラー抽出（備考テキスト内を優先、フォールバックで商品名括弧内） ===
-    result["カラー"] = _extract_color_from_text(options_text) or _extract_color(product_name)
+    text_color = _extract_color_from_text(options_text)
+    name_color = _extract_color(product_name)
+    # 商品名の方が具体的（例: ピアノブラック > ブラック）なら商品名を優先
+    if text_color and name_color and text_color in name_color and text_color != name_color:
+        result["カラー"] = name_color
+    else:
+        result["カラー"] = text_color or name_color
 
     # === サイズ抽出（商品名から。備考が空でも取得可能） ===
     result["サイズ"] = _extract_size(product_name)
 
     settings = _get_amazon_settings()
-    default_font = settings.get("default_font", "楷書体")
+    # カテゴリ別デフォルト書体（オリジナル分割印→明朝体等）
+    cat_defaults = settings.get("category_default_font", {})
+    default_font = cat_defaults.get(category, settings.get("default_font", "楷書体"))
     use_fallback = settings.get("use_orderer_fallback", True)
 
     if not text:
-        result["書体"] = default_font
+        # 備考が空でも商品名に書体がある場合（分割印等: "(行書体, 4枚（ヨコ書き）)"）
+        font_from_name = _extract_font_from_product_name(product_name)
+        result["書体"] = font_from_name or default_font
         result["作成名"] = _extract_sei_from_orderer(orderer_name) if use_fallback else ""
         return result
 
     # === 書体抽出 ===
-    raw_font = _extract_font(text) or default_font
+    raw_font = _extract_font(text)
+    if not raw_font:
+        # 備考から取れない場合は商品名からフォールバック
+        raw_font = _extract_font_from_product_name(product_name) or default_font
     # 後処理: 余分なテキストが混入している場合、既知の書体名だけ抽出
     result["書体"] = _normalize_font(raw_font)
 
@@ -119,11 +133,29 @@ def _normalize_font(value):
     # 短縮形
     short_fonts = [("角ゴシック", "角ゴシック体"), ("丸ゴシック", "丸ゴシック体"),
                    ("楷書", "楷書体"), ("明朝", "明朝体"), ("古印", "古印体"),
-                   ("行書", "行書体"), ("隷書", "隷書体")]
+                   ("行書", "行書体"), ("隷書", "隷書体"), ("ゴシック", "丸ゴシック体")]
     for short, full in short_fonts:
         if short in value:
             return full
     return value
+
+
+def _extract_font_from_product_name(product_name):
+    """商品名の括弧内から書体を抽出する。
+
+    分割印等で商品名に書体が含まれるパターン:
+    "(行書体, 4枚（ヨコ書き）)" → "行書体"
+    "(角ゴシック体, 1枚（ヨコ書き）)" → "角ゴシック体"
+    "(楷書体, 4枚（ヨコ書き）)" → "楷書体"
+    """
+    if not product_name:
+        return ""
+    known_fonts = ["角ゴシック体", "丸ゴシック体", "楷書体", "明朝体", "古印体",
+                   "行書体", "隷書体", "てん書体", "印相体", "ゴシック体", "クラフト体"]
+    for font in known_fonts:
+        if font in product_name:
+            return font
+    return ""
 
 
 def _extract_font(text):
