@@ -480,6 +480,14 @@ def _extract_amazon_value(row, header, amazon_attrs, short_name, row_number, bar
         pname = "" if pd.isna(pname) else str(pname)
         return _extract_gomu_direction(opts, pname)
 
+    # おなまえスタンプ専用: ひらがな/漢字/ローマ字/イラスト抽出
+    if src.startswith("onamae_"):
+        opts = row.get("項目・選択肢", "")
+        opts = "" if pd.isna(opts) else str(opts)
+        pname = row.get("商品名", "")
+        pname = "" if pd.isna(pname) else str(pname)
+        return _extract_onamae_field(src, opts, pname, row)
+
     # Amazon抽出結果
     if src in ("書体", "カラー", "作成名", "サイズ", "配置"):
         return amazon_attrs.get(src, "")
@@ -710,6 +718,204 @@ def _extract_gomu_direction(text, product_name):
         return "タテ"
 
     return ""
+
+
+def _extract_onamae_field(field, opts, product_name, row=None):
+    """おなまえスタンプ用フィールド抽出。
+
+    項目・選択肢パターン:
+    パターンA: 名入れ文字（ひらがな）：【むらかみ りゅうせい】名入れ文字（漢字）：【村上 龍誠】名入れ文字（ローマ字）：【MURAKAMI RYUSEI】
+    パターンB: 作成するお名前】：みずの ゆめの（ひらがなのみ）
+    イラスト: 028.やきゅう / イラスト：【008.みつばち】 / 【イラスト】：007
+    """
+    if field == "onamae_product":
+        # 商品名を短縮（"14点セット", "8点セット" 等）
+        m = re.search(r"(\d+点セット)", product_name)
+        if m:
+            return m.group(1)
+        if "入園" in product_name:
+            return "入園セット"
+        return product_name[:20]
+
+    if field == "onamae_split":
+        # 東京製版用: 「単品」「フロンティア」ラベル
+        if row is None:
+            return "単品"
+        memo = str(row.get("ひとことメモ", ""))
+        memo = "" if memo == "nan" else memo
+        has_fukusu = "複数" in memo
+        has_tanpin = "単品" in memo
+        if has_fukusu and has_tanpin:
+            return "フロンティア+"
+        elif has_fukusu:
+            return "フロンティア"
+        qty = str(row.get("単品複数", ""))
+        qty = "" if qty == "nan" else qty
+        if qty == "複数":
+            return "フロンティア"
+        if qty == "単品+":
+            return "フロンティア+"
+        return "単品"
+
+    if field == "onamae_size":
+        # 選べるサイズ（基本的に空、DXセット等で値あり）
+        m = re.search(r"選べるサイズ[=：:]\s*(.+?)(?:\n|$)", opts)
+        return m.group(1).strip() if m else ""
+
+    if field == "onamae_hiragana":
+        # パターンA: 名入れ文字（ひらがな）：【XX】
+        m = re.search(r"名入れ文字[（(]ひらがな[）)][：:＝=]*\s*【([^】]+)】", opts)
+        if m:
+            return m.group(1).strip()
+        # パターンB: 名入れ文字：【XX】（ひらがな指定なし、8点セット等）
+        m = re.search(r"名入れ文字[：:]\s*【([^】]+)】", opts)
+        if m:
+            return m.group(1).strip()
+        # パターンC: 作成するお名前】：XX
+        m = re.search(r"作成する(?:お名前|おなまえ)[】]?[：:]\s*(.+?)(?:\n|【|$)", opts)
+        if m:
+            return m.group(1).strip()
+        # パターンD: フリーテキスト（先頭のひらがな名を抽出）
+        # "たむらきっぺい 田村千笑" → "たむらきっぺい"
+        # "あさい はづき スタンプは..." → "あさい はづき"
+        first_line = opts.split("\n")[0].strip()
+        # イラスト番号を除去してからひらがな名を取得
+        first_line = re.sub(r"^\d{2,3}\.\s*\S+\s*", "", first_line).strip()
+        if first_line:
+            # ひらがな+スペースの連続部分を抽出
+            m = re.match(r"([\u3040-\u309F\s　]+)", first_line)
+            if m:
+                name = m.group(1).strip()
+                # 助詞「でお」等が末尾に付いた場合を除去
+                name = re.sub(r"[\s　]+(でお|で|お|に|を)\s*$", "", name).strip()
+                if len(name) >= 2:
+                    return name
+        return ""
+
+    if field == "onamae_kanji":
+        m = re.search(r"名入れ文字[（(]漢字[）)][：:＝=]*\s*【([^】]+)】", opts)
+        return m.group(1).strip() if m else ""
+
+    if field == "onamae_roman":
+        m = re.search(r"名入れ文字[（(]ローマ字[）)][：:＝=]*\s*【([^】]+)】", opts)
+        if m:
+            val = m.group(1).strip()
+            # 全角英字→半角に変換
+            val = val.translate(str.maketrans(
+                'ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ',
+                'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+            ))
+            return val
+        return ""
+
+    if field == "onamae_illust":
+        return _extract_onamae_illust(opts)
+
+    return ""
+
+
+# イラスト条件リストキャッシュ
+_illust_mapping_cache = None
+
+def _get_illust_mapping():
+    """イラスト条件リストを読み込み"""
+    global _illust_mapping_cache
+    if _illust_mapping_cache is None:
+        try:
+            data = load_json("onamae_illust_mapping.json")
+            _illust_mapping_cache = data.get("mapping", {})
+        except Exception:
+            _illust_mapping_cache = {}
+    return _illust_mapping_cache
+
+
+def _lookup_illust(keyword):
+    """キーワードから条件リストでイラスト名を検索"""
+    mapping = _get_illust_mapping()
+    if not keyword:
+        return ""
+    kw = keyword.strip()
+    # 完全一致
+    if kw in mapping:
+        return mapping[kw]
+    # 全角数字→半角変換して再検索
+    zen = "０１２３４５６７８９"
+    han = "0123456789"
+    for z, h in zip(zen, han):
+        kw = kw.replace(z, h)
+    if kw in mapping:
+        return mapping[kw]
+    # 部分一致（キーワードがテキストに含まれるか）
+    for mk, mv in mapping.items():
+        if mk in kw or kw in mk:
+            return mv
+    return ""
+
+
+def _extract_onamae_illust(opts):
+    """おなまえスタンプのイラスト番号・名称を抽出。条件リストで変換。"""
+    if not opts:
+        return ""
+
+    raw_illust = ""
+
+    # パターン1: "イラスト：【008.みつばち】" or "【イラスト】：007"
+    m = re.search(r"イラスト[】]?\s*[：:]\s*【?([^】\n]+?)】?\s*(?:名入れ|$|\n)", opts)
+    if m:
+        raw_illust = m.group(1).strip()
+    # パターン2: 先頭の "028. やきゅう" (数字.イラスト名)
+    if not raw_illust:
+        m = re.match(r"\s*0*(\d+)\.\s*(\S+)", opts)
+        if m:
+            raw_illust = f"{m.group(1)}.{m.group(2)}"
+    # パターン3: 改行後の「イラストスタンプ020」パターン
+    if not raw_illust:
+        m = re.search(r"イラスト(?:スタンプ)?[：:\s]*(\d+)", opts)
+        if m:
+            raw_illust = m.group(1)
+    # パターン4: テキスト内「スタンプは004のひめ２で」
+    if not raw_illust:
+        m = re.search(r"スタンプ(?:は)?(\d+)の(\S+?)(?:で|$)", opts)
+        if m:
+            raw_illust = f"{m.group(1)}.{m.group(2)}"
+
+    if not raw_illust:
+        return ""
+
+    # 条件リストで変換
+    # "でんしゃ/025" → keyword="でんしゃ"
+    m = re.match(r"(.+?)\s*/\s*(\d+)", raw_illust)
+    if m:
+        keyword = m.group(1).strip()
+        result = _lookup_illust(keyword)
+        if result:
+            return result
+
+    # "008. みつばち" → keyword="みつばち"
+    m = re.match(r"0*(\d+)[.\s]+(.+)", raw_illust)
+    if m:
+        keyword = m.group(2).strip()
+        result = _lookup_illust(keyword)
+        if result:
+            return result
+        # 条件リストにない場合はそのまま2桁パディング
+        return f"{int(m.group(1)):02d}.{keyword}"
+
+    # 数字のみ → 条件リストの結果番号から逆引き
+    m = re.match(r"0*(\d+)$", raw_illust)
+    if m:
+        num = int(m.group(1))
+        # 全角→半角変換済みの数字
+        target = f"{num:02d}."
+        mapping = _get_illust_mapping()
+        for mv in mapping.values():
+            if mv.startswith(target):
+                return mv
+        return f"{num:02d}"
+
+    # キーワードのみ
+    result = _lookup_illust(raw_illust)
+    return result if result else raw_illust
 
 
 def _auto_column_width(ws, num_columns: int):

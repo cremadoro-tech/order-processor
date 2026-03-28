@@ -254,6 +254,22 @@
         {"header": "番号", "amazon_source": "GoQ管理番号"}
       ]
     },
+    "おなまえスタンプ": {
+      "_comment": "東京製版用おなまえスタンプ（マクロ完成データ準拠: ひらがな/漢字/ローマ字3分割）",
+      "columns": [
+        {"header": "No.", "amazon_source": "_row_number"},
+        {"header": "商品名", "amazon_source": "onamae_product"},
+        {"header": "選べるサイズ", "amazon_source": "onamae_size"},
+        {"header": "個数", "amazon_source": "個数"},
+        {"header": "ひらがな", "amazon_source": "onamae_hiragana"},
+        {"header": "漢字", "amazon_source": "onamae_kanji"},
+        {"header": "ローマ字", "amazon_source": "onamae_roman"},
+        {"header": "備考", "amazon_source": "onamae_illust"},
+        {"header": "管理番号", "amazon_source": "GoQ管理番号"},
+        {"header": "複数", "amazon_source": "onamae_split"},
+        {"header": "バーコード", "amazon_source": "GoQ管理番号_barcode"}
+      ]
+    },
     "_nagae_gomu": {
       "_comment": "永江用ゴム印共通レイアウト（マクロ完成データ準拠）",
       "columns": [
