@@ -59,7 +59,9 @@ def extract_amazon_attributes(options_text, product_name="", orderer_name=""):
         return result
 
     # === 書体抽出 ===
-    result["書体"] = _extract_font(text) or default_font
+    raw_font = _extract_font(text) or default_font
+    # 後処理: 余分なテキストが混入している場合、既知の書体名だけ抽出
+    result["書体"] = _normalize_font(raw_font)
 
     # === 作成名抽出 ===
     extracted_name = _extract_creation_name(text)
@@ -84,6 +86,28 @@ def _extract_sei_from_orderer(orderer_name):
     if parts:
         return parts[0]
     return name
+
+
+def _normalize_font(value):
+    """書体抽出結果を正規化。余分なテキストが含まれていれば既知の書体名だけ返す。"""
+    if not value:
+        return value
+    # 先頭の区切り文字を除去
+    value = re.sub(r'^[：:=\s/]+', '', value).strip()
+    # 既知の書体名（長い名前から先にマッチ）
+    known_fonts = ["角ゴシック体", "丸ゴシック体", "楷書体", "明朝体", "古印体",
+                   "行書体", "隷書体", "てん書体", "印相体", "ゴシック体", "クラフト体"]
+    for font in known_fonts:
+        if font in value:
+            return font
+    # 短縮形
+    short_fonts = [("角ゴシック", "角ゴシック体"), ("丸ゴシック", "丸ゴシック体"),
+                   ("楷書", "楷書体"), ("明朝", "明朝体"), ("古印", "古印体"),
+                   ("行書", "行書体"), ("隷書", "隷書体")]
+    for short, full in short_fonts:
+        if short in value:
+            return full
+    return value
 
 
 def _extract_font(text):
@@ -135,12 +159,16 @@ def _extract_font(text):
     match = re.search(r"書体[：:]\s*([^\s　\n【】]+)", text)
     if match:
         val = match.group(1).strip().rstrip("※")
-        # 書体名リストと照合
-        font_names_map = {"楷書": "楷書体", "明朝": "明朝体", "古印": "古印体",
-                          "行書": "行書体", "隷書": "隷書体", "てん書": "てん書体",
-                          "印相": "印相体", "丸ゴシック": "丸ゴシック体", "ゴシック": "ゴシック体",
-                          "クラフト": "クラフト体"}
-        for short, full in font_names_map.items():
+        # 先頭の区切り文字を除去（「書体：：楷書体」等の二重コロン対策）
+        val = re.sub(r'^[：:=\s]+', '', val)
+        # 書体名リストと照合（長い名前から先にマッチ）
+        font_names_map = [
+                          ("角ゴシック", "角ゴシック体"), ("丸ゴシック", "丸ゴシック体"),
+                          ("楷書", "楷書体"), ("明朝", "明朝体"), ("古印", "古印体"),
+                          ("行書", "行書体"), ("隷書", "隷書体"), ("てん書", "てん書体"),
+                          ("印相", "印相体"), ("ゴシック", "ゴシック体"),
+                          ("クラフト", "クラフト体")]
+        for short, full in font_names_map:
             if short in val:
                 return full
         return val

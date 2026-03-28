@@ -136,6 +136,9 @@ def generate_workbook(df: pd.DataFrame) -> bytes:
 
             amazon_sheet = amazon_sheet_names.get(sheet_base, sheet_base)
             amazon_layout = amazon_layouts.get(sheet_base, amazon_layouts.get("_default", {}))
+            # $ref参照を解決（共通レイアウト定義の再利用）
+            if "$ref" in amazon_layout:
+                amazon_layout = amazon_layouts.get(amazon_layout["$ref"], amazon_layouts.get("_default", {}))
 
             # Amazonは配送区分でシート分割（単品=AmazonJP, 単品＋=フロンティア+, 複数=フロンティア）
             amazon_group["_amazon_split"] = amazon_group.apply(_amazon_split_key, axis=1)
@@ -407,6 +410,10 @@ def _extract_amazon_value(row, header, amazon_attrs, short_name, row_number, bar
     if src in ("備考", "備考欄"):
         return ""
 
+    # 連番（永江用Amazon等）
+    if src == "_row_number":
+        return row_number
+
     # 固定値パターン（_fixed:XXX）
     if src.startswith("_fixed:"):
         return src[7:]
@@ -420,6 +427,58 @@ def _extract_amazon_value(row, header, amazon_attrs, short_name, row_number, bar
         return str(row.get("_expanded_name", ""))
     if src == "書体" and "_expanded_font" in row.index and str(row.get("_expanded_font", "")):
         return str(row.get("_expanded_font", ""))
+
+    # GoQ管理番号バーコード（*FA2-742* 形式）
+    if src == "GoQ管理番号_barcode":
+        val = row.get("GoQ管理番号", "")
+        goq = "" if val is None or (isinstance(val, float) and pd.isna(val)) else str(val)
+        return f"{barcode_pre}{goq}{barcode_suf}" if goq else ""
+
+    # ゴム印専用: 内容（住所テキスト。属性行を除去）
+    if src == "gomu_content":
+        val = row.get("項目・選択肢", "")
+        # 項目・選択肢が空の場合は備考にフォールバック
+        if pd.isna(val) or not str(val).strip():
+            val = row.get("備考", "")
+        if pd.isna(val) or not str(val).strip():
+            return ""
+        orderer = row.get("注文者氏名", "")
+        orderer = "" if pd.isna(orderer) else str(orderer).strip()
+        return _clean_gomu_content(str(val), orderer)
+
+    # ゴム印専用: サイズ（完成データ形式: "最大4行(60mm×20mm" or "62mm×15mm" or "20mm×60mm"）
+    if src == "gomu_size":
+        pname = row.get("商品名", "")
+        pname = "" if pd.isna(pname) else str(pname)
+        opts = row.get("項目・選択肢", "")
+        opts = "" if pd.isna(opts) else str(opts)
+
+        # 商品名の括弧から「最大N行(NNmm×NNmm)」を取得（Amazon選べるサイズ商品）
+        m = re.search(r"\(?(最大\d行\(\d+mm[×x]\d+mm)\)?", pname)
+        if m:
+            return m.group(1)
+        # 備考から「最大N行(NNmm×NNmm」
+        m = re.search(r"(最大\d行\(\d+mm[×x]\d+mm)", opts)
+        if m:
+            return m.group(1)
+        # 備考から「サイズ=NNmm×NNmm」or「印面サイズ:NNmm×NNmm」
+        m = re.search(r"(?:サイズ|印面サイズ)[=:：]\s*(.+?)(?:\n|$)", opts)
+        if m:
+            return m.group(1).strip()
+        # 商品名から NNmm×NNmm
+        m = re.search(r"(\d+mm[×x]\d+mm)", pname)
+        if m:
+            return m.group(1)
+        # フォールバック: amazon_attrsのサイズ
+        return amazon_attrs.get("サイズ", "")
+
+    # ゴム印専用: 配置（ヨコ/タテ）
+    if src == "gomu_direction":
+        opts = row.get("項目・選択肢", "")
+        opts = "" if pd.isna(opts) else str(opts)
+        pname = row.get("商品名", "")
+        pname = "" if pd.isna(pname) else str(pname)
+        return _extract_gomu_direction(opts, pname)
 
     # Amazon抽出結果
     if src in ("書体", "カラー", "作成名", "サイズ", "配置"):
@@ -465,6 +524,190 @@ def _extract_amazon_value(row, header, amazon_attrs, short_name, row_number, bar
     if src in row.index:
         val = row.get(src, "")
         return "" if pd.isna(val) else str(val)
+
+    return ""
+
+
+def _clean_gomu_content(text, orderer_name=""):
+    """ゴム印の内容から属性行（書体・向き・サイズ等）を除去し、住所テキストのみ返す。
+
+    入力例: "名入れ書体：【明朝体】 文字の向き：【ヨコ】 名入れ文字： 【〒592-8345 堺市西区浜寺昭和町1丁150-3 山本晃也】 山本晃也"
+    出力: "〒592-8345 堺市西区浜寺昭和町1丁150-3 山本晃也"
+    """
+    # 【名入れ文字：】内のテキストを優先抽出
+    m = re.search(r"名入れ文字[：:]\s*【([^】]+)】", text)
+    if m:
+        return m.group(1).strip()
+
+    # 備考フォールバック時: タイムスタンプデータの除去
+    text = re.sub(r"発送予定日\s+出荷予定日.*?23:59:59\s*", "", text, flags=re.DOTALL).strip()
+    text = re.sub(r"お届け予定日.*?23:59:59\s*", "", text, flags=re.DOTALL).strip()
+    text = re.sub(r"ギフトメッセージ\s*", "", text).strip()
+
+    # 先頭の属性テキストを一括除去（「明朝体 横書き 60×25 〒...」パターン）
+    _font_names = r"(?:楷書体|明朝体|行書体|隷書体|古印体|てん書体|印相体|角ゴシック体|丸ゴシック体|ゴシック体|クラフト体)"
+    # 先頭の「・書体名[/スペース]・方向 サイズ」を除去（複数パターン対応）
+    text = re.sub(
+        rf"^[・\s]*{_font_names}[/\s　]*(?:[・]*(?:ヨコ|タテ|横書き|縦書き|縦判|ヨコ向き|タテ向き|横向き|縦向き))?[/\s　]*(?:\d+[×x]\d+)?[/\s　]*",
+        "", text
+    ).strip()
+    # 「・横向き」「・縦向き」のみが先頭に残る場合
+    text = re.sub(r"^[・\s]*(?:横向き|縦向き|ヨコ向き|タテ向き)\s*", "", text).strip()
+
+    # 行ごとに処理して属性行を除去
+    lines = text.split("\n")
+    result = []
+    remove_patterns = [
+        r"^名入れ書体[：:]",
+        r"^書体[：:]",
+        r"^字体[：:]",
+        r"^文字の向き[：:]",
+        r"^文字の配置[：:]",
+        r"^(?:向き|配置)[：:]",
+        r"^印面に入れる内容[：:]$",
+        r"^サイズ[=：:]",
+        r"^印面サイズ[=：:]",
+        r"^最大\d行\(",
+        r"^\d+～\d+営業日",
+        r"^[-—─]{3,}",
+        r"^備考[=：:]",
+        r"^ヨコ向き$",
+        r"^タテ向き$",
+        r"^横書き$",
+        r"^縦書き$",
+        r"^縦判$",
+        r"^内容[：:]\s*$",
+    ]
+    font_only_pat = re.compile(
+        rf"^[・]*{_font_names}[/]?$"
+    )
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            continue
+        skip = False
+        for pat in remove_patterns:
+            if re.search(pat, stripped):
+                skip = True
+                break
+        if font_only_pat.match(stripped):
+            skip = True
+        if "(addr)" in stripped:
+            skip = True
+        if not skip:
+            # 行内の属性プレフィックスを除去
+            cleaned = re.sub(r"^印面に入れる内容[：:]\s*", "", stripped)
+            cleaned = re.sub(r"^彫刻内容[=：:]\s*", "", cleaned)
+            cleaned = re.sub(r"^内容[：:]\s*", "", cleaned)
+            # インラインの「書体：XX」「向き：XX」「サイズ XX」を除去
+            cleaned = re.sub(r"書体\s*[：:]\s*\S+\s*", "", cleaned)
+            cleaned = re.sub(r"向き\s*[：:]\s*\S+\s*", "", cleaned)
+            cleaned = re.sub(r"サイズ\s+\d+mm[×x]\d+mm\s*", "", cleaned)
+            # 「彫刻名\s*：XX」パターンを除去
+            cleaned = re.sub(r"彫刻名\s*[：:]\s*\S+\s*", "", cleaned)
+            cleaned = cleaned.strip()
+            if cleaned:
+                result.append(cleaned)
+
+    content = "\n".join(result)
+
+    # 末尾の注文者名を除去（住所テキストの後にAmazon注文者名が追加されるパターン）
+    if orderer_name and content:
+        content = _remove_trailing_orderer(content, orderer_name)
+
+    return content
+
+
+def _remove_trailing_orderer(content, orderer_name):
+    """内容末尾の注文者名を除去する。
+
+    Amazonゴム印の備考パターン:
+    「〒XXX-XXXX 住所 会社名 TEL XXX 注文者名」
+    → 末尾の注文者名を除去
+    """
+    if not orderer_name or not content:
+        return content
+
+    # 注文者名のバリエーションを生成
+    orderer_clean = orderer_name.strip()
+    orderer_nospace = re.sub(r"[\s　]+", "", orderer_clean)
+    orderer_parts = re.split(r"[\s　]+", orderer_clean)
+    orderer_sei = orderer_parts[0] if orderer_parts else ""
+
+    # 末尾一致チェック用の候補リスト（長い順）
+    candidates = []
+    if orderer_clean:
+        candidates.append(orderer_clean)         # "山下 峰"
+    if orderer_nospace and orderer_nospace != orderer_clean:
+        candidates.append(orderer_nospace)         # "山下峰"
+    # 姓のみは短すぎるので単独では使わない（誤除去防止）
+
+    for name in candidates:
+        # エスケープしてパターン生成
+        escaped = re.escape(name)
+        # スペースバリエーション（「山下 峰」も「山下　峰」もマッチ）
+        flexible = re.sub(r"\\[\s　]+", r"[\\s　]*", escaped)
+        # 末尾にマッチ（前にスペースがある）
+        pattern = rf"[\s　]+{flexible}\s*$"
+        new_content = re.sub(pattern, "", content)
+        if new_content != content:
+            return new_content.strip()
+
+    # 別パターン: 同じ名前が重複（"森兼一郎 森兼一郎"）
+    content_flat = re.sub(r"\s+", " ", content).strip()
+    for name in candidates:
+        escaped = re.escape(name)
+        flexible = re.sub(r"\\[\s　]+", r"[\\s　]*", escaped)
+        if re.search(rf"{flexible}\s+{flexible}\s*$", content_flat):
+            # 末尾の重複を1つ除去
+            new_content = re.sub(rf"\s+{flexible}\s*$", "", content)
+            if new_content != content:
+                return new_content.strip()
+
+    return content
+
+
+def _extract_gomu_direction(text, product_name):
+    """ゴム印の配置（ヨコ/タテ）をAmazon備考から抽出。
+
+    完成データの配置列: "ヨコ" or "タテ"
+    """
+    if not text:
+        return ""
+
+    # パターン1: 文字の向き：【ヨコ】 or 文字の配置：【ヨコ書き】
+    m = re.search(r"(?:文字の向き|文字の配置|向き|配置)[：:=]\s*【?([^】\n]+)】?", text)
+    if m:
+        d = m.group(1).strip()
+        if "ヨコ" in d or "横" in d:
+            return "ヨコ"
+        if "タテ" in d or "縦" in d:
+            return "タテ"
+        return d
+
+    # パターン2: 単独の【ヨコ】【タテ】
+    if re.search(r"【ヨコ】|【横】", text):
+        return "ヨコ"
+    if re.search(r"【タテ】|【縦】", text):
+        return "タテ"
+
+    # パターン3: 向き：ヨコ / 向き：タテ
+    m = re.search(r"向き[：:]\s*(ヨコ|横|タテ|縦)", text)
+    if m:
+        d = m.group(1)
+        return "ヨコ" if d in ("ヨコ", "横") else "タテ"
+
+    # パターン4: 商品名にヨコ/タテの指定
+    if "ヨコ" in product_name or "横" in product_name:
+        return "ヨコ"
+    if "タテ" in product_name or "縦" in product_name:
+        return "タテ"
+
+    # パターン5: テキスト内に直接書かれている
+    if re.search(r"(?<![角丸])ヨコ|横書き", text):
+        return "ヨコ"
+    if re.search(r"タテ|縦書き|縦判", text):
+        return "タテ"
 
     return ""
 

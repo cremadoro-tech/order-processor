@@ -161,7 +161,20 @@
       "ペンペン": "ペンペン",
       "クルトガ": "クルトガ",
       "おなまえスタンプ": "おなまえ",
-      "お名前シールお名前セット": "おなまえシール"
+      "お名前シールお名前セット": "おなまえシール",
+      "スキナ住所印": "スキナスタンプ",
+      "トップスター": "トップスター",
+      "アドレスマークⅡ": "アドレスマーク",
+      "中包みスキナ": "中包み用住所印",
+      "中包み木台": "中包み用住所印",
+      "ゴム角": "ゴム角",
+      "楽のし": "楽のし",
+      "スキナ丸印": "スキナ丸印",
+      "スキナ角印": "スキナ角印",
+      "スキナ風雅印": "スキナ風雅印",
+      "風雅印": "風雅印",
+      "イラストスキナ住所印": "イラストスキナ住所印",
+      "イラスト木台ゴム": "イラスト木台ゴム"
     },
     "ジョインティ": {
       "columns": [
@@ -241,6 +254,37 @@
         {"header": "番号", "amazon_source": "GoQ管理番号"}
       ]
     },
+    "_nagae_gomu": {
+      "_comment": "永江用ゴム印共通レイアウト（マクロ完成データ準拠）",
+      "columns": [
+        {"header": "番号", "amazon_source": "_row_number"},
+        {"header": "商品名", "amazon_source": "short_name"},
+        {"header": "受注番号", "amazon_source": "受注番号"},
+        {"header": "サイズ", "amazon_source": "gomu_size"},
+        {"header": "書体", "amazon_source": "書体"},
+        {"header": "配置", "amazon_source": "gomu_direction"},
+        {"header": "GoQ管理番号(三桁ハイフン区切り)", "amazon_source": "GoQ管理番号"},
+        {"header": "個数", "amazon_source": "個数"},
+        {"header": "内容", "amazon_source": "gomu_content"},
+        {"header": "備考", "amazon_source": ""},
+        {"header": "", "amazon_source": "ひとことメモ"},
+        {"header": "単品", "amazon_source": "単品複数"},
+        {"header": "注文者", "amazon_source": "GoQ管理番号_barcode"}
+      ]
+    },
+    "スキナ住所印": { "$ref": "_nagae_gomu" },
+    "トップスター": { "$ref": "_nagae_gomu" },
+    "アドレスマークⅡ": { "$ref": "_nagae_gomu" },
+    "中包みスキナ": { "$ref": "_nagae_gomu" },
+    "中包み木台": { "$ref": "_nagae_gomu" },
+    "ゴム角": { "$ref": "_nagae_gomu" },
+    "楽のし": { "$ref": "_nagae_gomu" },
+    "スキナ丸印": { "$ref": "_nagae_gomu" },
+    "スキナ角印": { "$ref": "_nagae_gomu" },
+    "スキナ風雅印": { "$ref": "_nagae_gomu" },
+    "風雅印": { "$ref": "_nagae_gomu" },
+    "イラストスキナ住所印": { "$ref": "_nagae_gomu" },
+    "イラスト木台ゴム": { "$ref": "_nagae_gomu" },
     "_default": {
       "columns": [
         {"header": "商品名", "amazon_source": "short_name"},
