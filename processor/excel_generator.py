@@ -453,6 +453,10 @@ def _extract_amazon_value(row, header, amazon_attrs, short_name, row_number, bar
         opts = row.get("項目・選択肢", "")
         opts = "" if pd.isna(opts) else str(opts)
 
+        # 備考先頭のサイズを最優先（「60mmx25mm」等、お客様が選択したサイズ）
+        m = re.match(r"\s*(\d+mm\s*[×xX]\s*\d+mm)", opts)
+        if m:
+            return m.group(1).strip()
         # 商品名の括弧から「最大N行(NNmm×NNmm)」を取得（Amazon選べるサイズ商品）
         m = re.search(r"\(?(最大\d行\(\d+mm[×x]\d+mm)\)?", pname)
         if m:
@@ -730,9 +734,15 @@ def _extract_onamae_field(field, opts, product_name, row=None):
     """
     if field == "onamae_product":
         # 商品名を短縮（"14点セット", "8点セット" 等）
-        m = re.search(r"(\d+点セット)", product_name)
+        # 9点セット = 8点スタンプ+ボックス付き → 製造上は8点セット
+        m = re.search(r"(\d+)点セット", product_name)
         if m:
-            return m.group(1)
+            n = int(m.group(1))
+            if n == 9:
+                n = 8  # 9点=8点+ボックス
+            elif n == 15:
+                n = 14  # 15点=14点+ボックス
+            return f"{n}点セット"
         if "入園" in product_name:
             return "入園セット"
         return product_name[:20]
