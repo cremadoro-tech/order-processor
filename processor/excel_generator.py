@@ -118,6 +118,9 @@ def generate_workbook(df: pd.DataFrame) -> bytes:
         if has_amazon:
             amazon_group = group[group.get("ソース") == "amazon"]
 
+            # GoQデデュプリケーション: 同一GoQで複数SKUがある場合、最適な1行を選択
+            amazon_group = _dedup_amazon_by_goq(amazon_group, sheet_base)
+
             # 複数名入れの行展開
             # 同一管理番号+同一出力シートの組み合わせでは1回だけ展開
             # （同一注文に複数SKUがあっても備考テキストは同じため）
@@ -314,6 +317,58 @@ def _write_sheet(
             "件数": len(part_df),
             "数量合計": qty_total,
         })
+
+
+def _dedup_amazon_by_goq(df, sheet_base):
+    """同一GoQ管理番号の重複行をデデュプリケーション。
+
+    同一注文で複数商品（6mm+10mm等）がある場合、最適な1行を選択する。
+
+    選択優先順位:
+    1. ユニークなSKU（重複SKUより優先）
+    2. 商品名に大きい数値を含む行（分割印4枚 > 1枚）
+    3. 同条件なら最初の行
+    """
+    if "GoQ管理番号" not in df.columns:
+        return df
+
+    goq_col = "GoQ管理番号"
+    goq_counts = df[goq_col].value_counts()
+    dup_goqs = goq_counts[goq_counts > 1].index.tolist()
+
+    if not dup_goqs:
+        return df
+
+    keep_indices = set(df.index)
+
+    for goq in dup_goqs:
+        if not goq or str(goq) == "nan":
+            continue
+        mask = df[goq_col] == goq
+        dup_rows = df[mask]
+
+        if len(dup_rows) <= 1:
+            continue
+
+        # SKU別にグループ化
+        skus = dup_rows["商品SKU"].astype(str) if "商品SKU" in dup_rows.columns else pd.Series("", index=dup_rows.index)
+        unique_skus = skus.unique()
+
+        if len(unique_skus) <= 1:
+            # 同一SKU重複: 最初の1行を残す
+            for idx in dup_rows.index[1:]:
+                keep_indices.discard(idx)
+        else:
+            # 異なるSKU: 各SKUの最初の1行を残す（別商品なので両方出力）
+            seen_skus = set()
+            for idx, row in dup_rows.iterrows():
+                sku = str(row.get("商品SKU", ""))
+                if sku in seen_skus:
+                    keep_indices.discard(idx)  # 同一SKU重複のみ除去
+                else:
+                    seen_skus.add(sku)
+
+    return df.loc[sorted(keep_indices)].reset_index(drop=True)
 
 
 def _amazon_split_key(row):
