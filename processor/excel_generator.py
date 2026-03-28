@@ -763,50 +763,13 @@ def _extract_onamae_field(field, opts, product_name, row=None):
         return m.group(1).strip() if m else ""
 
     if field == "onamae_hiragana":
-        # パターンA: 名入れ文字（ひらがな）：【XX】
-        m = re.search(r"名入れ文字[（(]ひらがな[）)][：:＝=]*\s*【([^】]+)】", opts)
-        if m:
-            return m.group(1).strip()
-        # パターンB: 名入れ文字：【XX】（ひらがな指定なし、8点セット等）
-        m = re.search(r"名入れ文字[：:]\s*【([^】]+)】", opts)
-        if m:
-            return m.group(1).strip()
-        # パターンC: 作成するお名前】：XX
-        m = re.search(r"作成する(?:お名前|おなまえ)[】]?[：:]\s*(.+?)(?:\n|【|$)", opts)
-        if m:
-            return m.group(1).strip()
-        # パターンD: フリーテキスト（先頭のひらがな名を抽出）
-        # "たむらきっぺい 田村千笑" → "たむらきっぺい"
-        # "あさい はづき スタンプは..." → "あさい はづき"
-        first_line = opts.split("\n")[0].strip()
-        # イラスト番号を除去してからひらがな名を取得
-        first_line = re.sub(r"^\d{2,3}\.\s*\S+\s*", "", first_line).strip()
-        if first_line:
-            # ひらがな+スペースの連続部分を抽出
-            m = re.match(r"([\u3040-\u309F\s　]+)", first_line)
-            if m:
-                name = m.group(1).strip()
-                # 助詞「でお」等が末尾に付いた場合を除去
-                name = re.sub(r"[\s　]+(でお|で|お|に|を)\s*$", "", name).strip()
-                if len(name) >= 2:
-                    return name
-        return ""
+        return _extract_onamae_name(opts, "hiragana")
 
     if field == "onamae_kanji":
-        m = re.search(r"名入れ文字[（(]漢字[）)][：:＝=]*\s*【([^】]+)】", opts)
-        return m.group(1).strip() if m else ""
+        return _extract_onamae_name(opts, "kanji")
 
     if field == "onamae_roman":
-        m = re.search(r"名入れ文字[（(]ローマ字[）)][：:＝=]*\s*【([^】]+)】", opts)
-        if m:
-            val = m.group(1).strip()
-            # 全角英字→半角に変換
-            val = val.translate(str.maketrans(
-                'ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ',
-                'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-            ))
-            return val
-        return ""
+        return _extract_onamae_name(opts, "roman")
 
     if field == "onamae_illust":
         return _extract_onamae_illust(opts)
@@ -852,6 +815,126 @@ def _lookup_illust(keyword):
     return ""
 
 
+def _extract_onamae_name(opts, name_type):
+    """おなまえスタンプ用 ひらがな/漢字/ローマ字を抽出。
+
+    name_type: "hiragana", "kanji", "roman"
+
+    対応パターン:
+    A: 名入れ文字（ひらがな）：【XX】名入れ文字（漢字）：【YY】名入れ文字（ローマ字）：【ZZ】
+    B: 【ひらがな：XX】【漢字：YY】【ローマ字(大文字のみ)：ZZ】
+    C: 名入れ文字：【XX】（ひらがなのみ、8点セット等）
+    D: 作成するお名前】：XX
+    E: 016、漢字名、ひらがな名、ローマ字名（カンマ区切り+番号プレフィックス）
+    F: 【018.くま】【えぐちせしる】（括弧のみ）
+    G: いちご/015. 名前 ひらがな名（スラッシュ+名前キーワード）
+    H: フリーテキスト（先頭ひらがな名 注文者漢字名）
+    """
+    if not opts:
+        return ""
+
+    # === パターンA: 名入れ文字（ひらがな）：【XX】 ===
+    label_map = {
+        "hiragana": r"名入れ文字[（(]ひらがな[）)]",
+        "kanji": r"名入れ文字[（(]漢字[）)]",
+        "roman": r"名入れ文字[（(]ローマ字[）)]",
+    }
+    m = re.search(label_map[name_type] + r"[：:＝=]*\s*【([^】]+)】", opts)
+    if m:
+        return _clean_onamae_val(m.group(1), name_type)
+
+    # === パターンB: 【ひらがな：XX】 ===
+    label_map_b = {
+        "hiragana": r"ひらがな",
+        "kanji": r"漢字",
+        "roman": r"ローマ字(?:\(大文字のみ\))?",
+    }
+    m = re.search(r"【" + label_map_b[name_type] + r"[：:]\s*([^】]+)】", opts)
+    if m:
+        return _clean_onamae_val(m.group(1), name_type)
+
+    # === パターンE: 016、漢字名、ひらがな名、ローマ字名 ===
+    m = re.match(r"\d{2,3}[、,]\s*(.+)", opts.split("\n")[0])
+    if m:
+        parts = re.split(r"[、,]\s*", m.group(1))
+        # parts: [漢字, ひらがな, ローマ字, 注文者名] or [ひらがな, 漢字, ローマ字, ...]
+        # 文字種で判定
+        if len(parts) >= 3:
+            classified = _classify_name_parts(parts[:3])
+            if name_type in classified:
+                return _clean_onamae_val(classified[name_type], name_type)
+
+    # ひらがな専用の追加パターン
+    if name_type == "hiragana":
+        # パターンC: 名入れ文字：【XX】（ひらがな指定なし）
+        m = re.search(r"名入れ文字[：:]\s*【([^】]+)】", opts)
+        if m:
+            return _clean_onamae_val(m.group(1), name_type)
+        # パターンD: 作成するお名前】：XX
+        m = re.search(r"作成する(?:お名前|おなまえ)[】]?[：:]\s*(.+?)(?:\n|【|$)", opts)
+        if m:
+            return _clean_onamae_val(m.group(1), name_type)
+        # パターンF: 【018.くま】【えぐちせしる】→ 2番目の括弧内
+        m = re.match(r"【[^】]*】\s*【([^】]+)】", opts)
+        if m:
+            val = m.group(1).strip()
+            if re.search(r"[\u3040-\u309F]", val):
+                return val
+        # パターンG: いちご/015. 名前 ひらがな名
+        m = re.search(r"名前[\s　]+([^\n]+)", opts)
+        if m:
+            val = m.group(1).strip()
+            # ひらがな部分だけ取得
+            m2 = re.match(r"([\u3040-\u309F\s　]+)", val)
+            if m2:
+                return m2.group(1).strip()
+        # パターンH: フリーテキスト（先頭ひらがな名）
+        first_line = opts.split("\n")[0].strip()
+        # イラスト番号/名を除去
+        first_line = re.sub(r"^【[^】]*】\s*", "", first_line)
+        first_line = re.sub(r"^\d{2,3}[.\s]+\S+\s*", "", first_line).strip()
+        first_line = re.sub(r"^\S+/\d{2,3}[.\s]*", "", first_line).strip()
+        if first_line:
+            m = re.match(r"([\u3040-\u309F\s　]+)", first_line)
+            if m:
+                name = m.group(1).strip()
+                name = re.sub(r"[\s　]+(でお|で|お|に|を)\s*$", "", name).strip()
+                if len(name) >= 2:
+                    return name
+
+    return ""
+
+
+def _classify_name_parts(parts):
+    """名前パーツを文字種で分類（ひらがな/漢字/ローマ字）"""
+    result = {}
+    for p in parts:
+        p = p.strip()
+        if not p:
+            continue
+        if re.match(r"^[A-Za-zＡ-Ｚ\s　]+$", p):
+            result["roman"] = p
+        elif re.search(r"[\u3040-\u309F]", p) and not re.search(r"[\u4E00-\u9FFF]", p):
+            result["hiragana"] = p
+        elif re.search(r"[\u4E00-\u9FFF]", p):
+            result["kanji"] = p
+    return result
+
+
+def _clean_onamae_val(val, name_type):
+    """おなまえスタンプの値をクリーニング"""
+    val = val.strip()
+    if name_type == "roman":
+        # 全角英字→半角
+        val = val.translate(str.maketrans(
+            'ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ',
+            'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+        ))
+        # 注意書き除去
+        val = re.sub(r"※.*$", "", val).strip()
+    return val
+
+
 def _extract_onamae_illust(opts):
     """おなまえスタンプのイラスト番号・名称を抽出。条件リストで変換。"""
     if not opts:
@@ -859,10 +942,20 @@ def _extract_onamae_illust(opts):
 
     raw_illust = ""
 
-    # パターン1: "イラスト：【008.みつばち】" or "【イラスト】：007"
-    m = re.search(r"イラスト[】]?\s*[：:]\s*【?([^】\n]+?)】?\s*(?:名入れ|$|\n)", opts)
+    # パターン1: "イラスト：【008.みつばち】" or "【イラスト】：007" or "【イラスト：014.いちご】"
+    m = re.search(r"イラスト[】]?\s*[：:]\s*【?([^】\n]+?)】?\s*(?:名入れ|【|$|\n)", opts)
     if m:
         raw_illust = m.group(1).strip()
+    # パターン1b: 【018.くま】【えぐちせしる】→ 先頭括弧がイラスト番号.名前
+    if not raw_illust:
+        m = re.match(r"\s*【(\d{2,3}[.\s][^】]+)】", opts)
+        if m:
+            raw_illust = m.group(1).strip()
+    # パターン1c: カンマ区切りの先頭番号（016、漢字、ひらがな、ローマ字）
+    if not raw_illust:
+        m = re.match(r"\s*(\d{2,3})[、,]", opts)
+        if m:
+            raw_illust = m.group(1)
     # パターン2: 先頭の "028. やきゅう" (数字.イラスト名)
     if not raw_illust:
         m = re.match(r"\s*0*(\d+)\.\s*(\S+)", opts)
